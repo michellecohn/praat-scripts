@@ -1,0 +1,100 @@
+########################################################################
+#
+#
+# Open all files in a directory & concatenate them, saving a .txt file
+# transcript
+#
+#
+# For E-Prime .wav output in the format: SUBJECT#_WORD_CONDITION.wav (e.g., 331_Beat_Silence.wav)
+# 
+#
+# MC 9/2/2017
+#
+#
+########################################################################
+
+
+form 
+
+    comment Condition (MTB or Silence)
+    word cond_id MTB
+
+endform
+
+
+# Load in sounds
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	
+	
+
+	####### EXTRACT SUBJECT NUMBER, WORD, AND CONDITION ########
+
+
+	length = length(sound$)
+	word_start_index = index(sound$,"_")+1
+	
+
+	# +4 is for ".wav" ending
+	end_length = length(cond_id$) + 4 
+
+	word_length = length - end_length - word_start_index
+
+	word_id$ = mid$(sound$, word_start_index, word_length) 
+
+
+	sub_id$ = mid$(sound$, 1, (word_start_index-2)) 
+
+	
+	
+	###### START A NEW TEXTFILE ######
+
+	textfile$ = directory$ + "combined_'sub_id$'_'cond_id$'.txt"
+	textmessage$ = "Please write 'word_id$'"
+
+	if ifile = 1 
+
+	# writeFileLine: "'sub_id$'_'cond_id$'.txt", "Please write 'word_id$'"
+
+	writeFile: 	textfile$, textmessage$
+
+	else
+	
+	# appendFileLine: "'sub_id$'_'cond_id$'.txt", "Please write 'word_id$'"
+	appendFileLine: textfile$, textmessage$
+
+	endif
+
+
+endfor # File load loop 
+
+beginPause: "stop or continue"
+    comment: "Click Continue when you're done modifying soundfiles"
+endPause: "Continue", 1
+
+
+
+select all 
+minus Strings list
+Concatenate recoverably
+
+# Save .wav file and text grid
+selectObject: "Sound chain"
+
+Write to WAV file... 'directory$'combined_'sub_id$'_'cond_id$'.wav
+
+
+selectObject: "TextGrid chain"
+Write to text file... 'directory$'combined_'sub_id$'_'cond_id$'.TextGrid
