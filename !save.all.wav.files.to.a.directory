@@ -1,0 +1,21 @@
+######################################################
+#
+# Saves all files in the Praat objects window and saves them to a directory
+#
+#
+# 10/24/18 MC 
+#
+######################################################
+
+select all
+
+dir$ = "/Users/michellecohn/Desktop/output/"
+n = numberOfSelected("Sound")
+for counter from 1 to n
+    curr_sound_index = selected("Sound",'counter')
+	select curr_sound_index
+	name$ = selected$ ("Sound")
+    Write to WAV file... 'dir$''name$'.wav
+	select all
+
+endfor

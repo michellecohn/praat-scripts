@@ -1,0 +1,61 @@
+############################
+#
+# Convert mono > Stereo
+#
+# Pause to clean up each .wav file
+# 
+#
+# 7/18/18 MC
+#############################
+
+
+
+# Set the directory
+
+
+form 
+
+	# Give background info
+	comment Subject (w zeros)
+	text curr_subject 001
+
+	# Add in your computer's name 
+	#comment Your user name (on the computer) 
+	#text user_name michellecohn
+endform
+
+
+##### Define I/O directories #######
+# directory$ = "C:\Users\dss-lu-zellou\Desktop\Siri_Imitation_AXB\Stimuli\" + 'curr_subject$' + "_AXB\"
+#directory$ = "/Users/" + "'user_name$'" + "/Google Drive/siri_imitation_data/" + "'curr_subject$'" + "_AXB/"
+
+directory$ = "/Users/michellecohn/Google Drive/siri_imitation_data/" + "'curr_subject$'" + "_AXB/"
+
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_of_files = Get number of strings
+
+##### Load in all the files ######
+for ifile to number_of_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+	Convert to mono
+
+	# Pause to correct file
+	beginPause: "Correct soundfile"
+
+	Edit
+
+	endPause: "Continue", 1
+
+
+	Scale intensity... 50
+	Save as WAV file... 'directory$''sound$'
+
+
+
+endfor # File load in loop 
+

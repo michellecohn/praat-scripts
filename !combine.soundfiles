@@ -1,0 +1,152 @@
+################################################################################################################################################
+# 
+#
+# Concatenate soundfiles (can use a specified FRAME)
+# 
+# Updated 8/14/17 MC
+# 
+#
+#
+# First prompt will ask you to select the directory with the soundfiles/textgrids 
+#
+# 
+################################################################################################################################################
+
+
+form 
+
+	comment Use a beginning frame? (1=Yes, 2=No)
+   		positive frame 1
+
+
+endform
+
+
+# Load in sounds
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+endfor # File load loop 
+
+
+
+########## SELECT THE BEGINNING FRAME  ########## 
+
+if frame = 1 
+
+pause select starting FRAME
+frame$ = selected$("Sound")
+Rename... FRAME
+selectObject ("Sound FRAME") 
+Copy... 1FRAME
+
+endif # frame
+
+
+########## SELECT THE BEGINNING   ########## 
+
+if frame = 0
+
+pause select BEGINNING SOUND 1
+beg1$ = selected$("Sound")
+selectObject ("Sound 'beg1$'") 
+Copy... 1'beg1$'
+
+pause select BEGINNING SOUND 2
+beg2$ = selected$("Sound")
+selectObject ("Sound 'beg2$'") 
+Copy... 1'beg2$'
+
+endif # beginning
+
+
+
+########## SELECT THE VOWELS  ########## 
+
+pause select VOWEL 1
+vowel1$ = selected$("Sound")
+selectObject ("Sound 'vowel1$'") 
+Copy... 2'vowel1$'
+
+pause select VOWEL 2
+vowel2$ = selected$("Sound")
+selectObject ("Sound 'vowel2$'") 
+Copy... 2'vowel2$'
+
+########## SELECT THE ENDING  ########## 
+
+pause select WORDEND 1
+end1$ = selected$("Sound")
+selectObject ("Sound 'end1$'") 
+Copy... 3'end1$'
+
+
+pause select WORDEND 2
+end2$ = selected$("Sound")
+selectObject ("Sound 'end2$'") 
+Copy... 3'end2$'
+
+
+
+########## COMBINE & CREATE TEXTGRID  ########## 
+
+
+## SOUND 1 ##
+
+if frame = 1
+	selectObject ("Sound 1FRAME")
+
+else 
+	selectObject ("Sound 1'beg1$'") 
+
+endif 
+
+plusObject ("Sound 2'vowel1$'") 
+plusObject ("Sound 3'end1$'") 
+Concatenate recoverably
+
+selectObject ("Sound chain")
+Rename... combined_'vowel1$'
+Write to WAV file... 'directory$'combined_'vowel1$'.wav
+
+selectObject ("TextGrid chain")
+Write to text file... 'directory$'combined_'vowel1$'.TextGrid
+
+
+
+## SOUND 2 ##
+
+if frame = 1
+	selectObject ("Sound 1FRAME")
+
+else 
+	selectObject ("Sound 1'beg2$'") 
+
+endif 
+
+plusObject ("Sound 2'vowel2$'") 
+plusObject ("Sound 3'end2$'") 
+Concatenate recoverably
+
+selectObject ("Sound chain")
+Rename... combined_'vowel2$'
+Write to WAV file... 'directory$'combined_'vowel2$'.wav
+
+selectObject ("TextGrid chain")
+Write to text file... 'directory$'combined_'vowel2$'.TextGrid
+
+
+
+

@@ -1,0 +1,168 @@
+################################################################################################################################################
+# 
+#
+# Matching the intensity contour, dB, and using a frame for two soundfiles
+#
+# Updated 8/13/17 MC
+# 
+# 
+################################################################################################################################################
+
+form 
+	comment What's the lowest reasonable pitch (for PSOLA)?
+	   		positive crazylowh1 75
+	comment What's the highest reasonable pitch?
+	   		positive crazyhighh1 300
+
+endform
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+# constant
+minpitch = 80
+
+
+
+
+
+##############################################################################################################################
+##############################################################################################################################
+#
+# (1) Get the beginning FRAME and match vowels in intensity contour, dB, & length
+#
+##############################################################################################################################
+
+
+
+# Segment parts of each soundfile (beginning, vowel, end) 
+
+for ifile to number_files
+select Strings list
+sound$ = Get string... ifile
+Read from file... 'directory$''sound$'
+soundname$ = selected$ ("Sound")
+
+	if soundname$ <> "FRAME"
+
+	# identify associated TextGrid
+    gridfile$ = "'directory$''soundname$'.TextGrid"   
+    	  	 
+		if fileReadable (gridfile$)
+    	   Read from file... 'gridfile$'
+  	       select TextGrid 'soundname$'
+ 	       number_intervals = Get number of intervals... 1
+			
+
+			###########  Loop through intervals in text grid #####################################################################
+
+  	        # Go through all vowel intervals in the file
+ 	        # Starting from here, add everything that should be repeated for each vowel
+
+
+			for interval to  number_intervals
+				select TextGrid 'soundname$'
+				vowel_label$ = Get label of interval... 1 'interval'
+
+				if vowel_label$ <> ""
+
+					start = Get starting point... 1 'interval'
+        			end = Get end point... 1 'interval'
+					duration = end-start
+			    	startdurms = duration * 1000
+
+					worddur = Get total duration
+
+			
+					##### EXTRACT BEGINNING ######
+			
+					selectObject ("Sound 'soundname$'")
+					rstartz = Get nearest zero crossing... 1 start
+					Extract part... 0 rstartz rectangular 1 no
+					Rename... wordstart_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/wordstart_'soundname$'.wav
+					To TextGrid... vowel vowel
+					Insert interval tier... 1 beginning
+					label$ = "beginning"
+					Set interval text... 1 1 'label$'
+					Write to text file... 'directory$'IntermediateFiles/wordstart_'soundname$'.TextGrid
+
+	
+					##### EXTRACT VOWEL ######
+			
+					selectObject ("Sound 'soundname$'") 
+					Extract part...  start end rectangular 1 yes
+         			Rename... vowel_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/vowel_'soundname$'.wav
+
+
+					########### EXTRACT END ###########
+			
+					selectObject ("Sound 'soundname$'")
+					rendz = Get nearest zero crossing... 1 end
+					Extract part... rendz worddur rectangular 1 no
+					Rename... wordend_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/wordend_'soundname$'.wav
+
+
+				endif # TextGrid label
+			endif # Exclude "FRAME"
+		endfor # Interval loop
+
+endfor # File loop
+
+
+######### Choose which beginning frame you want to use ######## 
+pause select the sound you want to use as the beginning frame from Praat Objects list 
+frame$ = selected$("Sound")
+Rename... FRAME
+Write to WAV file... 'directory$'Frame/FRAME.wav
+
+
+
+######## Apply intensity tier to both vowels ######## 
+#
+# From http://praat-users.yahoogroups.co.narkive.com/Aya0qMEw/applying-a-new-intensity-tier-to-a-sound-intensity-manipulation
+#
+
+# Choose which vowel intensity contour to copy 
+pause select the *original* soundfile with the vowel you want to use as the intensity tier from the Praat Objects list 
+vowelintensitytier_ref$ = selected$("Sound")
+
+pause Select the soundfile with the vowel that you want to modify
+newvowelintensity$ = selected$("Sound")
+
+
+######### MAKE VOWELS THE SAME LENGTH ######### 
+# Get length for old vowel and new vowel 
+
+selectObject ("Sound vowel_'vowelintensitytier_ref$'")
+ref_duration = Get total duration
+
+selectObject ("Sound vowel_'newvowelintensity$'")
+old_duration = Get total duration
+durfactor = ref_duration/old_duration
+
+selectObject ("Sound vowel_'newvowelintensity$'")
+Lengthen (overlap-add)... 'crazylowh1' 'crazyhighh1' 'durfactor'
+Rename... vowel_'newvowelintensity$'_dur
+
+
+###
+# 
+# Select reference vowel & vowel with intensity contour to be changed
+selectObject ("Sound vowel_'newvowelintensity$'")
+plusObject ("Sound vowel_'vowelintensitytier_ref$'")
+
+directory$ = chooseDirectory$ ("Choose the directory for the Praat VocalToolKit")
+execute workpre.praat
+
+
+
+
+

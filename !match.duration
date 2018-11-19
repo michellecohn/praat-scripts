@@ -1,0 +1,72 @@
+#############################################
+#
+#
+# Match duration for vowels
+# 
+# Updated 8/14/2017 MC
+# 
+#############################################
+
+form 
+	comment What's the lowest reasonable pitch (for PSOLA)?
+	   		positive crazylowh1 75
+	comment What's the highest reasonable pitch?
+	   		positive crazyhighh1 300
+
+endform
+
+
+
+# Load in sounds
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+endfor # File load loop 
+
+
+
+########## SELECT THE VOWELS  ########## 
+
+pause select VOWEL 1 (Reference duration) 
+vowel1$ = selected$("Sound")
+
+pause select VOWEL 2 (Apply new duration) 
+vowel2$ = selected$("Sound")
+
+
+
+######### LENGTHEN VOWEL 2 TO MATCH VOWEL 1 ########## 
+
+selectObject ("Sound 'vowel1$'")
+ref_duration = Get total duration
+Write to WAV file... 'directory$''vowel1$'_dur.wav
+
+selectObject ("Sound 'vowel2$'")
+old_duration = Get total duration
+durfactor = ref_duration/old_duration
+
+selectObject ("Sound 'vowel2$'")
+Lengthen (overlap-add)... 'crazylowh1' 'crazyhighh1' 'durfactor'
+Rename... 'vowel2$'_dur
+Write to WAV file... 'directory$''vowel2$'_dur.wav
+
+
+
+
+
+
+
+
+

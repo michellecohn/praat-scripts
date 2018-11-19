@@ -1,0 +1,65 @@
+#############################################
+#
+#
+# Match dB for vowels
+# 
+# Updated 8/14/2017 MC
+# 
+#############################################
+
+form 
+	comment New dB value?
+	   		positive new_db 60.0
+
+endform
+
+
+
+# Load in sounds
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+endfor # File load loop 
+
+
+
+########## SELECT THE VOWELS  ########## 
+
+pause select VOWEL 1 
+vowel1$ = selected$("Sound")
+
+pause select VOWEL 2  
+vowel2$ = selected$("Sound")
+
+
+
+########## MATCH DB  ########## 
+
+selectObject("Sound 'vowel1$'") 
+Scale intensity... new_db
+Write to WAV file... 'directory$''vowel1$'_DB.wav
+
+
+selectObject("Sound 'vowel2$'") 
+Scale intensity... new_db
+Write to WAV file... 'directory$''vowel2$'_DB.wav
+
+
+
+
+
+
+
+

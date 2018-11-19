@@ -1,0 +1,104 @@
+################################################################################################################################################
+# 
+#
+# Splitting apart soundfiles based on textgrid
+# 
+# Updated 8/14/17 MC
+# 
+#
+# Saves files as wordstart_soundname$.wav, vowel_soundname$.wav,
+#  & wordend_soundname$.wav (also makes textgrids)
+#
+# Need to have: 
+# (1) a folder called 'IntermediateFiles' in the directory 
+# (2) .wav files and associated TextGrids with the same name in the directory
+#
+#
+# First prompt will ask you to select the directory with the soundfiles/textgrids 
+#
+# 
+################################################################################################################################################
+
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+
+# Segment parts of each soundfile (beginning, vowel, end) 
+
+for ifile to number_files
+select Strings list
+sound$ = Get string... ifile
+Read from file... 'directory$''sound$'
+soundname$ = selected$ ("Sound")
+
+# identify associated TextGrid
+gridfile$ = "'directory$''soundname$'.TextGrid"   
+    	  	 
+	if fileReadable (gridfile$)
+    	Read from file... 'gridfile$'
+  	    select TextGrid 'soundname$'
+ 	    number_intervals = Get number of intervals... 1
+			
+
+		###########  Loop through intervals in text grid #####################################################################
+
+  	    # Go through all vowel intervals in the file
+ 	    # Starting from here, add everything that should be repeated for each vowel
+
+		for interval to  number_intervals
+			select TextGrid 'soundname$'
+			vowel_label$ = Get label of interval... 1 'interval'
+
+				if vowel_label$ <> ""
+
+					start = Get starting point... 1 'interval'
+        			end = Get end point... 1 'interval'
+					duration = end-start
+			    	startdurms = duration * 1000
+
+					worddur = Get total duration
+
+			
+					##### EXTRACT BEGINNING ######
+			
+					selectObject ("Sound 'soundname$'")
+					rstartz = Get nearest zero crossing... 1 start
+					Extract part... 0 rstartz rectangular 1 no
+					Rename... wordstart_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/wordstart_'soundname$'.wav
+					To TextGrid... vowel vowel
+					Insert interval tier... 1 beginning
+					label$ = "beginning"
+					Set interval text... 1 1 'label$'
+					Write to text file... 'directory$'IntermediateFiles/wordstart_'soundname$'.TextGrid
+
+	
+					##### EXTRACT VOWEL ######
+			
+					selectObject ("Sound 'soundname$'") 
+					Extract part...  start end rectangular 1 yes
+         				Rename... vowel_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/vowel_'soundname$'.wav
+
+
+					########### EXTRACT END ###########
+			
+					selectObject ("Sound 'soundname$'")
+					rendz = Get nearest zero crossing... 1 end
+					Extract part... rendz worddur rectangular 1 no
+					Rename... wordend_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/wordend_'soundname$'.wav
+
+
+				endif # TextGrid label
+		endfor # Interval loop
+
+endfor # File loop
+
+

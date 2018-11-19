@@ -1,0 +1,203 @@
+##########################################
+#
+# Experiment 2: Condition 1 (f0 separation, monotone)
+# 
+# Updated 8/29/2016
+#
+##########################################
+
+
+# Define directories
+maskerdirectory$ = "/Users/michellecohn/Desktop/CRM-Stimuli/Original_sentences/Cond1_Mask/"
+targetdirectory$ = "/Users/michellecohn/Desktop/CRM-Stimuli/Original_sentences/Cond1_Target/"
+
+maskeroutputdir$ = "/Users/michellecohn/Desktop/Exp2_Stimuli/Individual_Sentences/Cond1_Mask(MONO)/"
+targetoutputdir$ = "/Users/michellecohn/Desktop/Exp2_Stimuli/Individual_Sentences/Cond1_Target(MONO)/"
+
+
+
+# Define output intensity (dB)
+db = 70.0
+
+# Define starting f0
+startingf0 = 100
+
+
+# Define pitch levels 
+# stlevels = c(0, 0.156, 0.306, 1, 2, 3)
+
+pitch1 = 0
+pitch2 = 0.156
+pitch3 = 0.306
+pitch4 = 1
+pitch5 = 2
+pitch6 = 3
+
+
+# Define number of pitches
+npitch = 6
+
+
+
+#####################
+#
+# Make all the maskers monotone, with an f0 at 120 Hz
+#
+#####################
+
+
+#### Read all files from file ######
+
+strings = Create Strings as file list: "list", maskerdirectory$ + "/*.wav"
+numberOfFiles = Get number of strings
+
+
+for ifile to numberOfFiles
+
+    selectObject: strings
+    fileName$ = Get string: ifile
+    Read from file: maskerdirectory$ + "/" + fileName$
+	objectName$ = fileName$ - ".wav"
+
+
+
+	do ("To Manipulation...", 0.01, 75, 600)
+	do ("Extract pitch tier")
+
+	####  Apply a formula to make all the points equal to the new pitch (monotonizing the sound) ######
+	do ("Formula...", "'startingf0'")
+
+
+	#####  Replace pitch tier in manipulation object #######
+		objectName$ = fileName$ - ".wav"
+		selectObject: "PitchTier 'objectName$'"
+		plusObject: "Manipulation 'objectName$'"
+		do ("Replace pitch tier")
+		selectObject: "Manipulation 'objectName$'"
+		do ("Get resynthesis (overlap-add)")
+		do ("Rename...","'objectName$'")
+
+
+		selectObject: "Sound 'objectName$'"
+
+	#### Adjust intensity to 70 db ###
+		Scale intensity... db
+		
+	# Save to the output folder
+		Write to WAV file... 'maskeroutputdir$''objectName$'.wav
+
+
+	# Clean up 
+		selectObject: "Manipulation 'objectName$'"
+		plusObject: "PitchTier 'objectName$'"
+		plusObject: "Sound 'objectName$'"
+		plusObject: "Sound 'objectName$'"
+		Remove
+ 
+
+endfor
+
+
+
+
+
+#####################
+#
+# Make all the target monotone, with an f0 at each of the six pitch levels
+#
+#####################
+
+
+halfsteps = 2^(1/12)
+
+# Define starting f0
+startingf0 = 100
+
+pitch1 = 0
+pitch2 = 0.156
+pitch3 = 0.306
+pitch4 = 1
+pitch5 = 2
+pitch6 = 3
+
+npitch = 6 
+
+db = 70 
+
+######## Load in each file ##########
+
+maskerdirectory$ = "/Users/michellecohn/Desktop/CRM-Stimuli/Original_sentences/Cond1_Mask/"
+targetdirectory$ = "/Users/michellecohn/Desktop/CRM-Stimuli/Original_sentences/Cond1_Target/"
+
+maskeroutputdir$ = "/Users/michellecohn/Desktop/Exp2_Stimuli/Individual_Sentences/Cond1_Mask(MONO)/"
+targetoutputdir$ = "/Users/michellecohn/Desktop/Exp2_Stimuli/Individual_Sentences/Cond1_Target(MONO)/"
+
+
+strings = Create Strings as file list: "list", targetdirectory$ + "/*.wav"
+numberOfFiles = Get number of strings
+
+for ifile to numberOfFiles
+
+selectObject: strings
+    fileName$ = Get string: ifile
+    Read from file: targetdirectory$ + "/" + fileName$
+	objectName$ = fileName$ - ".wav"
+
+
+	########### Loop through the pitch levels ##########
+	for ipitch to npitch
+
+		currST = pitch'ipitch'
+		currStartf0 = startingf0 * ((halfsteps)^(currST))
+
+
+		# Create new sound with the new adjusted pitch
+		selectObject: "Sound 'objectName$'"
+		do ("To Manipulation...", 0.01, 75, 600)
+		do ("Extract pitch tier")
+	
+		do ("Formula...", "'currStartf0'")
+
+
+		# replace pitch tier in manipulation object
+		selectObject: "PitchTier 'objectName$'"
+		plusObject: "Manipulation 'objectName$'"
+		do ("Replace pitch tier")
+		selectObject: "Manipulation 'objectName$'"
+		do ("Get resynthesis (overlap-add)")
+
+		# Rename the sound
+		newname$ = "'objectName$'_pitch'ipitch'"
+		do ("Rename...","'newname$'")
+
+		# Adjust the amplitude
+		selectObject: "Sound 'newname$'"	
+		Scale intensity... db
+
+
+		# Save the new sound
+		Write to WAV file... 'targetoutputdir$''newname$'.wav
+
+
+		selectObject: "Manipulation 'objectName$'"
+		plusObject: "PitchTier 'objectName$'"
+		Remove
+		
+	endfor
+
+
+
+		# Clean up 
+
+		plusObject: "Sound 'objectName$'"
+		plusObject: "Sound 'objectName$'"
+		Remove
+ 
+
+
+endfor
+
+
+
+
+

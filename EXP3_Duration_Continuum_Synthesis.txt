@@ -1,0 +1,119 @@
+form Normalize Amplitude in sound files
+	comment Sound file extension:
+	     optionmenu file_type: 2
+	     option .aiff
+	     option .wav
+	comment What duration (in ms) do you want to start at?
+   		positive startingDur 180
+
+	comment How many steps in the continuum?
+   		positive nsteps 13
+
+	comment What duration (in ms) do you want to end with? 
+		positive endingDur 300
+
+	comment Step size (in milliseconds)?
+   		positive stepsize 10
+
+	comment What's the lowest reasonable pitch (for PSOLA)?
+	   		positive crazylowh1 75
+	comment What's the highest reasonable pitch?
+	   		positive crazyhighh1 300
+endform
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+directory$ = "'directory$'" + "/" 
+
+Create Strings as file list... list 'directory$'*'file_type$'
+number_files = Get number of strings
+
+currDur = startingDur - stepsize
+
+
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+	soundname$ = selected$ ("Sound")
+
+	# identify associated TextGrid
+    	  gridfile$ = "'directory$''soundname$'.TextGrid"
+    	  	 if fileReadable (gridfile$)
+    	            Read from file... 'gridfile$'
+  	              select TextGrid 'soundname$'
+ 	               number_intervals = Get number of intervals... 1
+
+  	              # Go through all vowel intervals in the file
+ 	              # Starting from here, add everything that should be repeated for each vowel
+	  
+	  for k from 1 to number_intervals
+		    #select TextGrid 'soundname$'
+		    vowel_label$ = Get label of interval... 1 'k'
+		    
+			#checks if interval has a labeled vowel
+		    if vowel_label$ <> ""
+		            start = Get starting point... 1 'k'
+		            end = Get end point... 1 'k'
+
+			    duration = end - start
+	                   worddur = Get total duration
+			    startdurms = duration * 1000
+	
+			for idur to nsteps
+				goaldur = currDur + (stepsize*idur)
+	            durfactor = goaldur/startdurms
+				
+				selectObject ("Sound 'soundname$'") 
+				Extract part...  start end rectangular 1 yes
+         			Rename... vowel
+        
+        		selectObject ("Sound vowel")
+				Scale intensity... 60.0
+
+				Lengthen (overlap-add)... 'crazylowh1' 'crazyhighh1' 'durfactor'
+				
+				
+				
+				#	selectObject ("Sound 'soundname$'")
+				#	rstartz = Get nearest zero crossing... 1 start
+				#	Extract part... 0 rstartz rectangular 1 no
+				#	Rename... wordstart
+
+					selectObject ("Sound 'soundname$'")
+					rendz = Get nearest zero crossing... 1 end
+					Extract part... rendz worddur rectangular 1 no
+					Rename... wordend
+	
+                selectObject ("Sound wordend")
+			plus Sound vowel
+
+#	plus Sound vowel_1
+#change this to 0 or 1 if not working....
+
+		Concatenate
+
+		plusObject("Sound FRAME")
+		#plus Sound wordstart
+		Concatenate
+		Rename... wordnew
+        selectObject ("Sound wordnew")
+	Write to WAV file... 'directory$''soundname$'_'goaldur'ms.wav
+	
+	select Sound vowel
+	plus Sound wordnew
+	plus Sound wordstart
+	Remove
+
+endif 
+endif        
+endfor
+
+endfor
+
+select all
+minus Strings list
+minus Sound FRAME
+
+endfor
+Remove

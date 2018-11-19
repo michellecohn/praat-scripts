@@ -1,0 +1,26 @@
+######################################################
+#
+# Extract part of a soundfile name separated by underscores 
+#
+# e.g., 3434_cab_MTB
+#
+######################################################
+
+string$ = "3434_Dodd_MTB"
+cond_id$ = right$(string$, (index(string$,"_")-1))
+
+length = length(string$)
+start_index = index(string$,"_")+1
+end_index = length - length(cond_id$)+1
+word_length = end_index - start_index
+writeInfoLine: word_length
+
+sub_id$ = mid$(string$, 1, (start_index-2)) 
+
+cond_id$ = mid$(string$, (end_index +1), length) 
+
+
+writeInfoLine: mid$(string$, start_index, word_length) 
+
+
+writeInfoLine:cond_id$ 

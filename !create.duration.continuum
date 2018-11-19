@@ -1,0 +1,349 @@
+####################################################################################################################
+#
+#
+# Create vowel duration continuum based on annotated textgrids
+#
+# Updated 8/15/17 MC, adapated from GZ
+# 
+# Creates a vowel duration continuum,
+# 
+# Need to have: 
+#  (1) a soundfile and textgrid with one tier with the vowel labeled  (don't label other intervals) in the same directory
+#  (2) a folder in the directory called 'IntermediateFiles' 
+#  (3) a folder in the directory called 'Output'
+# 
+#
+
+# 
+####################################################################################################################
+
+form 
+	comment Sound file extension:
+	     optionmenu file_type: 2
+	     option .aiff
+	     option .wav
+	comment What duration (in ms) do you want to start at?
+   		positive startingDur 180
+
+	comment How many steps in the continuum?
+   		positive nsteps 13
+
+	comment Step size (in milliseconds)?
+   		positive stepsize 10
+
+
+	comment What's the lowest reasonable pitch (for PSOLA)?
+	   		positive crazylowh1 75
+
+	comment What's the highest reasonable pitch?
+	   		positive crazyhighh1 300
+
+	comment Keep final copies of soundfiles in Praat window? (1= yes, 2= no)
+	   		positive praatwindow 2
+
+
+endform
+
+###############################################################
+
+directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+directory$ = "'directory$'" + "/" 
+
+
+
+Create Strings as file list... list 'directory$'*'file_type$'
+number_files = Get number of strings
+
+currDur = startingDur - stepsize
+
+
+########### Loop through files #######################################################################################################################################
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+	soundname$ = selected$ ("Sound")
+
+	# identify associated TextGrid
+    gridfile$ = "'directory$''soundname$'.TextGrid"   
+    	  	 
+		if fileReadable (gridfile$)
+    	   Read from file... 'gridfile$'
+  	       select TextGrid 'soundname$'
+ 	       number_intervals = Get number of intervals... 1
+			
+
+			###########  Loop through intervals in text grid #####################################################################
+
+  	        # Go through all vowel intervals in the file
+ 	        # Starting from here, add everything that should be repeated for each vowel
+
+
+			for interval to  number_intervals
+				select TextGrid 'soundname$'
+				vowel_label$ = Get label of interval... 1 'interval'
+
+				if vowel_label$ <> ""
+
+					start = Get starting point... 1 'interval'
+        			end = Get end point... 1 'interval'
+					duration = end-start
+			    	startdurms = duration * 1000
+
+					worddur = Get total duration
+
+			
+
+					##### EXTRACT BEGINNING ######
+			
+					selectObject ("Sound 'soundname$'")
+					rstartz = Get nearest zero crossing... 1 start
+					Extract part... 0 rstartz rectangular 1 no
+					Rename... wordstart_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/wordstart_'soundname$'.wav
+					To TextGrid... vowel vowel
+					Insert interval tier... 1 beginning
+					label$ = "beginning"
+					Set interval text... 1 1 'label$'
+					Write to text file... 'directory$'IntermediateFiles/wordstart_'soundname$'.TextGrid
+
+	
+					##### EXTRACT VOWEL ######
+			
+					selectObject ("Sound 'soundname$'") 
+					Extract part...  start end rectangular 1 yes
+         			Rename... vowel_'soundname$'
+					Write to WAV file... 'directory$'IntermediateFiles/vowel_'soundname$'.wav
+
+
+					###### LOAD BACK IN VOWEL SOUND & ADJUST DURATION ######
+					
+
+					for idur to nsteps 
+						goaldur = currDur + (stepsize*idur)
+						durfactor = 'goaldur'/('duration'*1000)
+
+						selectObject ("Sound vowel_'soundname$'")
+
+						Lengthen (overlap-add)... 'crazylowh1' 'crazyhighh1' 'durfactor'
+
+
+						Rename... vowel_'soundname$'_'goaldur'ms
+						Write to WAV file... 'directory$'IntermediateFiles/vowel_'soundname$'_'goaldur'ms.wav
+			
+
+						######## CREATE TEXTGRID FOR NEW VOWEL ########
+
+						To TextGrid... vowel vowel
+						Insert interval tier... 1 vowel
+						label$ = "vowel"
+						Set interval text... 1 1 'label$'
+						Write to text file... 'directory$'IntermediateFiles/vowel_'soundname$'_'goaldur'ms.TextGrid
+						Rename... vowel_'soundname$'_'goaldur'ms
+
+
+						########### EXTRACT END ###########
+			
+						selectObject ("Sound 'soundname$'")
+						rendz = Get nearest zero crossing... 1 end
+						Extract part... rendz worddur rectangular 1 no
+						Rename... wordend_'soundname$'
+						Write to WAV file... 'directory$'IntermediateFiles/wordend_'soundname$'.wav
+
+						########### CREATE TEXTGRID FOR END ###########
+
+						selectObject ("Sound wordend_'soundname$'")
+						To TextGrid... vowel vowel
+						Insert interval tier... 1 vowel
+						label$ = "end"
+						Set interval text... 1 1 'label$'
+						Write to text file... 'directory$'IntermediateFiles/wordend_'soundname$'.TextGrid
+						Rename... wordend_'soundname$'
+
+
+						########### CONCATENATE VOWEL WITH BEGINNING FRAME & END (.wav + .TextGrid) ########### 
+
+						selectObject("Sound wordend_'soundname$'")
+						plusObject ("Sound vowel_'soundname$'_'goaldur'ms")
+						plusObject ("Sound wordstart_'soundname$'")
+
+						Concatenate
+						Rename... whole_'soundname$'_'goaldur'ms
+						Write to WAV file... 'directory$'Output/whole_'soundname$'_'goaldur'ms.wav
+
+
+					
+						selectObject ("TextGrid wordstart_'soundname$'")
+						plusObject ("TextGrid vowel_'soundname$'_'goaldur'ms")
+						plusObject ("TextGrid wordend_'soundname$'")
+
+						Concatenate
+						Rename... whole_'soundname$'_'goaldur'ms
+						Write to text file... 'directory$'Output/whole_'soundname$'_'goaldur'ms.TextGrid
+
+
+
+						########### CLEAN UP BEFORE NEXT DURATION LOOP ###########
+
+						selectObject ("TextGrid wordend_'soundname$'")
+						plusObject ("Sound wordend_'soundname$'")
+						plusObject ("Sound vowel_'soundname$'_'goaldur'ms")
+						plusObject ("TextGrid vowel_'soundname$'_'goaldur'ms")
+
+						Remove
+	
+
+
+						# Keep final output .wav files and TextGrids in the Praat window? 
+						if praatwindow = 2
+	
+							selectObject ("Sound whole_'soundname$'_'goaldur'ms")
+							plusObject ("TextGrid whole_'soundname$'_'goaldur'ms")
+							Remove
+
+						endif
+
+
+					endfor # Duration loop 
+
+
+
+				endif # Labeled interval
+
+
+
+			endfor # Interval loop 
+
+		endif # File exists
+
+
+
+		########### CLEAN UP BEFORE NEXT FILE LOOP ###########
+
+	if soundname$ <> "FRAME"
+
+		selectObject ("Sound wordstart_'soundname$'")
+		plusObject ("TextGrid wordstart_'soundname$'")
+		plusObject ("Sound 'soundname$'")
+		plusObject ("TextGrid 'soundname$'")
+		plusObject ("Sound vowel_'soundname$'")
+
+	Remove
+
+	endif
+
+	
+
+endfor #File loop
+
+selectObject ("Strings list")
+Remove
+
+
+
+
+
+##############################################################################################################################
+##############################################################################################################################
+######### OLD VERISONS: USED TO TEST EACH PART OF THE SCRIPT...(commented out) ############
+##############################################################################################################################
+##############################################################################################################################
+
+
+#(2) Load vowels back in, modify their durations 
+
+
+# directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+# directory$ = "'directory$'" + "/" 
+
+# vowel$ = "vowel_"
+
+# nsteps = 13
+# currDur = 170
+# stepsize = 10
+
+# crazylowh1 = 75
+# crazyhighh1 = 300
+
+# Create Strings as file list... list2 'directory$'vowel_*.wav
+# number_files = Get number of strings
+
+
+# for ifile to number_files
+#	select Strings list
+#	sound$ = Get string... ifile
+#	Read from file... 'directory$''sound$'
+
+#	vowel$ = selected$ ("Sound")
+
+#	# Get overall vowel length 
+#	selectObject ("Sound 'vowel$'")
+#	voweldur = Get total duration
+
+
+	################# Loop through durations #####################################################################
+
+#	for idur to nsteps 
+#	goaldur = currDur + (stepsize*idur)
+#	durfactor = 'goaldur'/('voweldur'*1000)
+
+#	selectObject ("Sound 'vowel$'")
+#	Scale intensity... 60.0
+#	Lengthen (overlap-add)... 'crazylowh1' 'crazyhighh1' 'durfactor'
+
+#	Rename... 'vowel$'_'goaldur'ms
+#	Write to WAV file... 'directory$''vowel$'_'goaldur'ms.wav
+
+	
+
+#	endfor # vowel duration loop 
+
+#endfor #File loop 
+
+
+
+###############################################################
+###############################################################
+###############################################################
+
+# (3) Combine vowels with their endings 
+
+#directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+#directory$ = "'directory$'" + "/" 
+
+#nsteps = 13
+
+#goaldur = 300 
+
+#Create Strings as file list... list 'directory$'*.wav
+#number_files = Get number of strings
+
+
+#for ifile to number_files
+#	select Strings list
+#	sound$ = Get string... ifile
+#	Read from file... 'directory$'vowel_'sound$'
+
+#	Read from file... 'directory$'wordstart_'sound$'
+ 
+	#soundname$ = selected$ ("Sound")
+
+	# selectObject  ("Sound vowel_'sound$'_'goaldur'ms")
+
+
+#endfor #file loop
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
