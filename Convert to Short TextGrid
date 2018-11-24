@@ -1,0 +1,31 @@
+######################################
+#
+# Convert > Short TextGrid
+#
+# Opens each file in a directory, converts to short TextGrid format
+# & saves in the original directory
+# 
+# MC 6/28/18
+# 
+######################################
+
+
+##### Define I/O directories #######
+
+directory$ = "/Users/michellecohn/Desktop/FAVE-1.2.2/FAVE-extract/"
+
+
+Create Strings as file list... list 'directory$'*.TextGrid
+number_of_files = Get number of strings
+
+##### Load in all the files ######
+for ifile to number_of_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+
+	currfile$ = sound$ - ".wav"
+	Save as short text file... 'directory$''currfile$'
+
+
+endfor #File load in loop
