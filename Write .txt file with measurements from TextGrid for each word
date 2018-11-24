@@ -1,0 +1,54 @@
+################################################################################################
+#
+# Write .txt file with measurements from TextGrid for each word
+# 
+# Get the word duration 
+#
+# MC 11/23/18 
+#
+#
+# Adapted from https://www.ling.upenn.edu/courses/Fall_2013/ling520/DurationLogger.praat
+################################################################################################
+
+
+# (1) Define I/O directories #######
+directory$ = "/Volumes/Michelle_2018/FAVE-1.2.2/FAVE-extract/"
+
+
+# (2) Define headers 
+header_row$ = "Filename" + tab$ + "Word" + tab$ + "Duration(ms)" +  newline$
+header_row$ > 'directory$'duration_log.txt
+
+# (3) Loop through TextGrids 
+Create Strings as file list...  list 'directory$'*.TextGrid
+n_textgrids = Get number of strings
+
+for ifile from 1 to n_textgrids
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+    Read from file... 'directory$''curr_file$'
+
+   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   	object_name$ = selected$ ("TextGrid")
+
+    # Now we figure out how many intervals there are in tier 2, and step through them one at a time.
+	# If an intervals label is non-null, we get its duration and write it to the log file.
+  	number_of_intervals = Get number of intervals... 2
+
+ 		for i from 1 to number_of_intervals
+			interval_label$ = Get label of interval... 2 'i'
+
+			if interval_label$ <> "sp"
+               begin_vowel = Get starting point... 2 'i'
+               end_vowel = Get end point... 2 'i'
+               duration = (end_vowel - begin_vowel) * 1000
+              fileappend "'directory$'duration_log.txt" 'object_name$''tab$''interval_label$''tab$''duration:3''newline$'
+
+		
+
+
+			endif
+		endfor
+
+
+endfor
