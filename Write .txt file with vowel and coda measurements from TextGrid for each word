@@ -1,0 +1,78 @@
+################################################################################################
+#
+# Write .txt file with vowel and coda measurements from TextGrid for each word
+# 
+# Get the word duration 
+#
+# MC 1/22/19
+#
+#
+# Adapted from https://www.ling.upenn.edu/courses/Fall_2013/ling520/DurationLogger.praat
+################################################################################################
+
+
+# (1) Define I/O directories #######
+directory$ = "/Volumes/Michelle_2018/Experiment #4 (Lombard Study)/Corrected_textgrids_Ready_for_Analysis/"
+
+
+# (2) Define headers 
+header_row$ = "Filename" + tab$ + "Filename" + tab$ + "Word" + tab$ + "Vowel" + "Vowel_Duration(ms)" + tab$ + "Coda" + "Coda_Duration(ms)" + newline$
+header_row$ > 'directory$'duration_log.txt
+
+# (3) Loop through TextGrids 
+Create Strings as file list...  list 'directory$'*.TextGrid
+n_textgrids = Get number of strings
+
+for ifile from 1 to n_textgrids
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+    Read from file... 'directory$''curr_file$'
+
+   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   	object_name$ = selected$ ("TextGrid")
+
+    # Now we figure out how many intervals there are in tier 2, and step through them one at a time.
+	# If an intervals label is non-null, we get its duration and write it to the log file.
+  	number_of_intervals = Get number of intervals... 2
+
+
+	# Loop through words
+ 	for i from 1 to number_of_intervals
+		interval_label$ = Get label of interval... 2 'i'
+
+		if interval_label$ <> "please"
+			if interval_label$ <> "write"
+				if interval_label$ <> "sp"
+					if interval_label$ <> "sil"
+						if interval_label$ <> ""
+
+			
+							# Get time at current interval 
+               				word_start_time = Get starting point... 2 'i'
+							word_start_time  = word_start_time + 0.001
+    						segment = Get interval at time... 1 'word_start_time'
+
+
+							vowelsegment = segment + 1
+               				begin_vowel = Get starting point... 1 'vowelsegment'
+               				end_vowel = Get end point... 1 'vowelsegment'
+               				vowelduration = (end_vowel - begin_vowel) * 1000
+							vowel_label$ = Get label of interval... 1 'vowelsegment'
+
+
+							## Get final consonant duration 
+							codasegment = segment + 2
+          					begin_coda = Get starting point... 1 'codasegment'
+               				end_coda = Get end point... 1 'codasegment'
+               				codaduration = (end_coda - begin_coda) * 1000
+							coda_label$ = Get label of interval... 1 'codasegment'
+	
+              				# Write to logfile
+							fileappend "'directory$'duration_log.txt" 'newline$''object_name$''tab$''interval_label$''tab$''vowel_label$''tab$''vowelduration:3''tab$''coda_label$''tab$''codaduration:3'				
+						endif
+					endif
+				endif
+			endif
+		endif
+	endfor
+endfor
