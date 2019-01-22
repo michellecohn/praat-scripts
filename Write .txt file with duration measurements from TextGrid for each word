@@ -1,6 +1,6 @@
 ################################################################################################
 #
-# Write .txt file with measurements from TextGrid for each word
+# Write .txt file with measurements from TextGrid for each annotated word
 # 
 # Get the word duration 
 #
