@@ -1,0 +1,30 @@
+##########################################################
+#
+#
+# Open all .wav files in a directory in the Praat objects window
+# 
+# Updated 01/24/2019 MC
+# 
+##########################################################
+
+
+# Load in sounds
+directory$ = "C:\Users\dss-lu-zellou\Desktop\Demo_to_delete\Speechcons\"
+
+#Alternative: (need to comment out the other directory$ line if you don't want to specify the exact directory
+#directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+#directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	
+
+endfor # File load loop 
