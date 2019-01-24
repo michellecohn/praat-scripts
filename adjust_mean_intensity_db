@@ -1,0 +1,42 @@
+###################################################
+#
+#
+# Adjust mean intensity (dB) for all files in a folder 
+# 
+# Updated 01/24/2019 MC
+# 
+####################################################
+
+form 
+	comment New dB value?
+	positive new_db 70.0
+
+endform
+
+
+
+# Load in sounds
+
+directory$ = "C:\Users\dss-lu-zellou\Desktop\Demo_to_delete\Speechcons\"
+
+#Alternative directory selection: (need to comment out the above directory$ line if you don't want to specify the directory
+#directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+#directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	
+	# Modify the overall mean intensity (dB) 
+	Scale intensity... new_db
+	# Save the updated .wav file back in the directory
+	Write to WAV file... 'directory$''sound$'
+
+endfor # File load loop 
