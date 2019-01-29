@@ -1,0 +1,31 @@
+###################################################
+#
+#
+# Convert all .wav files to mono in a folder
+# 
+# 1/29/MC
+# 
+####################################################
+
+
+# Load in sounds
+directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	
+	# Convert to mono
+	Convert to mono
+	# Save the updated .wav file back in the directory
+	Write to WAV file... 'directory$''sound$'
+
+endfor # File load loop 
