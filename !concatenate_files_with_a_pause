@@ -1,0 +1,53 @@
+###################################################
+#
+#
+# Concatenate all files in a folder, adding a pause between them
+#
+# Will return a soundfile and textgrid called 'concatenated'
+# 
+# Updated 02/26/2019 MC
+# 
+####################################################
+
+form 
+	comment Pause length (s)
+	positive pause_length 1.0
+	
+endform
+
+
+
+# Load in sounds
+directory$ = chooseDirectory$ ("Choose the directory containing sound files")
+directory$ = "'directory$'" + "/" 
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+# Create a silence 
+pause_length = 1.0
+Create Sound from formula... first_pause 1 0.0 pause_length 44100 0
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	
+
+	# Create a silence 
+	Create Sound from formula... first_pause 1 0.0 pause_length 44100 0
+
+endfor # File load loop 
+
+
+select all 
+minus Strings list
+Concatenate recoverably
+
+select Sound chain
+Rename... concatenated
+select TextGrid chain
+Rename... concatenated
