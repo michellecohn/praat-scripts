@@ -1,15 +1,24 @@
-######################################################
+#############################################################################
 #
-# Saves all files in the Praat objects window and saves them to a directory
+# Saves all .wav files and .TextGRids in the Praat objects window to a directory
 #
 #
 # 10/24/18 MC 
 #
-######################################################
+# Updated with GZ 3/21/19
+#
+#############################################################################
+
+
+# (1) Update the output directory
+dir$ = "/Users/michellecohn/Desktop/output/"
+
 
 select all
 
-dir$ = "/Users/michellecohn/Desktop/output/"
+#################################################
+# Get the number of sounds selected and loop through them, saving each one
+#################################################
 n = numberOfSelected("Sound")
 for counter from 1 to n
     curr_sound_index = selected("Sound",'counter')
@@ -19,3 +28,19 @@ for counter from 1 to n
 	select all
 
 endfor
+
+
+
+#################################################
+# Get the number of TextGrids selected and loop through them, saving each one
+#################################################
+t = numberOfSelected("TextGrid")
+for counter from 1 to t
+    curr_textgrid_index = selected("TextGrid",'counter')
+	select curr_textgrid_index
+	name$ = selected$ ("TextGrid")
+    Write to text file... 'dir$''name$'.TextGrid
+	select all
+
+endfor
+
