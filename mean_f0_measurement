@@ -1,0 +1,214 @@
+########################################################################################
+#
+# Get mean vowel f0 at 12 intervals for all files in a directory
+## adapted from https://www.acsu.buffalo.edu/~cdicanio/scripts/Get_pitch.praat
+#
+#
+# Needs: textgrid with vowel annotated in arpabet 
+# (takes output from FAVE-align) 
+#
+# Only calculates f0 for vowels (need to have a numeral, in arpabet e.g. AA1)
+#
+# Excludes 'THE', 'WORD', and 'IS'
+#
+# Skips textgrid annotations with '_mp', 'mistake', 'misprounced', '(incorrect)'
+#
+# MC, 11/24/18
+#
+# Updated 4/24/19
+#
+#
+########################################################################################
+
+
+
+# (1) Define I/O directories #######
+
+form Give the working directories
+	comment Give the directory for the .wav and .textgrids (include final /)
+	text directory /Users/Soundfiles/
+
+	comment Give the outputdirectory for the f0 measurements (include final /)
+	text outputdir /Users/Soundfiles/f0_measurements/
+
+	comment Give the string at the end of the TextGrid (if applicable)
+	text textgridstring _Corrected
+  
+  comment Vowel tier adjustment 
+	adjustment_voweled = 1
+  
+endform 
+
+vowel_tier = 1 + adjustment_voweled
+word_tier = 2 + adjustment_voweled
+
+
+f0_minimum = 75
+f0_maximum = 600
+new_db = 80
+
+#Number of intervals you wish to extract pitch from.
+numintervals = 12
+
+analysis_points_time_step = 0.01
+
+
+# (2) Define headers 
+header_row$ = "Filename" + tab$ + "Word" + tab$ + "Start" + tab$ + "End" 
+
+for i to numintervals
+header_row$ = header_row$ + tab$ + "Mean_f0_Interval_'i'"
+endfor
+
+header_row$ = header_row$ + newline$
+
+header_row$ > 'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt
+
+
+
+# (3) Loop through TextGrids 
+Create Strings as file list...  list 'directory$'*.wav
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+    Read from file... 'directory$''curr_file$'
+   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   	object_name$ = selected$ ("Sound")
+	wavfile$ = curr_file$ - ".wav" 
+	Read from file... 'directory$''wavfile$''textgridstring$'.TextGrid
+
+	
+
+   # Now we figure out how many intervals there are in tier 2, and step through them one at a time.
+	# If an intervals label is non-null, we get its duration and write it to the log file.
+	selectObject: "TextGrid 'wavfile$'"
+  	number_of_intervals = Get number of intervals... vowel_tier
+				
+
+ 	for i from 1 to number_of_intervals
+
+			selectObject: "TextGrid 'wavfile$'"
+
+			# Get time of interval label & interval label 
+    		interval_start = Get starting point... vowel_tier 'i'
+			interval_start = interval_start + 0.001
+			interval_label$ = Get interval at time... vowel_tier 'interval_start'
+
+			interval_label$ = Get label of interval... vowel_tier 'i'
+			arpabet_num$ = right$(interval_label$, 1)
+
+			if arpabet_num$ = "1"
+
+			# Only want vowels
+
+					######### Get start/end of vowel, vowel label, word label #########
+					begin_vowel = Get starting point... vowel_tier 'i'
+               				end_vowel = Get end point... vowel_tier 'i'
+					word_int = Get interval at time... word_tier begin_vowel
+					word_label$ = Get label of interval... word_tier 'word_int'
+
+					if word_label$ = "PEN "
+						word_label$ = "PEN"
+					endif
+
+					mispronounced$ = right$(word_label$, 3)
+
+			if mispronounced$ <> "_mp"
+			if mispronounced$ <> "t) "
+			if mispronounced$ <> "ct)"
+			if mispronounced$ <> "ect"
+			if mispronounced$ <> "ake"
+
+			if word_label$ <> "THE" 
+				if word_label$ <> "WORD" 
+					if word_label$ <> "IS" 
+						if word_label$ <> "" 
+							if word_label$ <> "sp" 
+
+
+					######### Extract the vowel as a new sound object #########
+
+					selectObject: "Sound 'wavfile$'"
+					Extract part... begin_vowel end_vowel Rectangular vowel_tier no
+					vowel_extract_name$ = "'wavfile$'_'word_label$'_vowel"
+					Rename... 'vowel_extract_name$'
+
+					######### Calculate median f0 for each interval#########
+					selectObject: "Sound 'vowel_extract_name$'"
+			
+ 					start 		= 0.00
+					end 		= Get end time
+					interval  	= (end-start)/numintervals
+
+
+      				fileappend "'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt" 'wavfile$''tab$''word_label$''tab$''start''tab$''end''tab$'
+
+
+					######### Calculate mean f0 for each sub-interval#########
+					selectObject: "Sound 'vowel_extract_name$'"
+					To Pitch... 0 f0_minimum f0_maximum
+
+					total = 0
+         			number = 0
+
+					intvl_num = 1
+      				position  = start
+
+    				while position <= end
+
+							# Within each interval, take f0 measurements every 0.01 s interval 
+						
+							while position < start + intvl_num * interval
+
+            				hertz  = Get value at time... position Hertz Linear
+			
+
+           					if hertz = undefined
+	         					 # do nothing
+            				else
+                  				total  = total + hertz
+                  				number = number + 1
+            				endif
+								position = position + analysis_points_time_step
+         					endwhile
+
+      		
+					# Calculate mean & median
+					average  = total / number
+
+						if total = 0
+							average$ = "NA"
+        				else
+							average$ = fixed$(average, 1)
+						endif
+
+					
+      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt" 'average$''tab$'
+
+         				intvl_num = intvl_num + 1
+
+		endwhile
+
+
+      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt" 'newline$'
+
+	
+    endif				
+    endif	
+    endif	
+    endif
+    endif	
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+	endfor
+endfor
+
+select all 
+Remove
