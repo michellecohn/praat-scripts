@@ -15,7 +15,9 @@
 #
 # MC, 11/24/18
 #
-# Updated 4/24/19
+# Updated 10/11/19  MC - added mean / sd f0 across the 12 measurements, add in subject group
+# fixed error in vowel extraction; add automatic tier counting / adjustment to get vowel/word tiers
+# 		
 #
 #
 ########################################################################################
@@ -32,15 +34,12 @@ form Give the working directories
 	text outputdir /Users/Soundfiles/f0_measurements/
 
 	comment Give the string at the end of the TextGrid (if applicable)
-	text textgridstring _Corrected
+	text textgridstring 
   
-  comment Vowel tier adjustment 
-	adjustment_voweled = 1
+	comment Give subject group info
+	text subject_group YoungerAdults
   
 endform 
-
-vowel_tier = 1 + adjustment_voweled
-word_tier = 2 + adjustment_voweled
 
 
 f0_minimum = 75
@@ -57,12 +56,16 @@ analysis_points_time_step = 0.01
 header_row$ = "Filename" + tab$ + "Word" + tab$ + "Start" + tab$ + "End" 
 
 for i to numintervals
-header_row$ = header_row$ + tab$ + "Mean_f0_Interval_'i'"
+header_row$ = header_row$ + tab$ + "Median_f0_Interval_'i'"
 endfor
+
+# (2A) Add in Mean and SD f0 across measurements 
+header_row$ = header_row$ + tab$ + "Mean_f0" + tab$ + "Sd_f0" + tab$ + "SubjectGroup"
+
 
 header_row$ = header_row$ + newline$
 
-header_row$ > 'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt
+header_row$ > 'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt
 
 
 
@@ -74,13 +77,27 @@ for ifile from 1 to n_wav
 
 	select Strings list
 	curr_file$ = Get string... 'ifile'
-    Read from file... 'directory$''curr_file$'
+   	Read from file... 'directory$''curr_file$'
    	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
    	object_name$ = selected$ ("Sound")
 	wavfile$ = curr_file$ - ".wav" 
 	Read from file... 'directory$''wavfile$''textgridstring$'.TextGrid
 
+	# Measure number of tiers
+	number_tiers = Get number of tiers
 	
+	if number_tiers = 2
+		adjustment_voweled = 0
+	endif
+
+	if adjustment_voweled = 3
+		adjustment_voweled = 1
+	endif
+
+	vowel_tier = 1 + adjustment_voweled
+	word_tier = 2 + adjustment_voweled
+
+
 
    # Now we figure out how many intervals there are in tier 2, and step through them one at a time.
 	# If an intervals label is non-null, we get its duration and write it to the log file.
@@ -89,32 +106,22 @@ for ifile from 1 to n_wav
 				
 
  	for i from 1 to number_of_intervals
+		selectObject: "TextGrid 'wavfile$'"
 
-			selectObject: "TextGrid 'wavfile$'"
+		# Get time of interval label & interval label 
+    		begin_vowel = Get starting point... vowel_tier 'i'
+            	end_vowel = Get end point... vowel_tier 'i'
+		begin_vowel_plus = begin_vowel + 0.001
+		interval_label$ = Get label of interval... vowel_tier 'i'
+		arpabet_num$ = right$(interval_label$, 1)
 
-			# Get time of interval label & interval label 
-    		interval_start = Get starting point... vowel_tier 'i'
-			interval_start = interval_start + 0.001
-			interval_label$ = Get interval at time... vowel_tier 'interval_start'
+		# Only want vowels
+		if arpabet_num$ = "1"
+			word_int = Get interval at time... word_tier begin_vowel
+			word_label$ = Get label of interval... word_tier 'word_int'
+	
 
-			interval_label$ = Get label of interval... vowel_tier 'i'
-			arpabet_num$ = right$(interval_label$, 1)
-
-			if arpabet_num$ = "1"
-
-			# Only want vowels
-
-					######### Get start/end of vowel, vowel label, word label #########
-					begin_vowel = Get starting point... vowel_tier 'i'
-               				end_vowel = Get end point... vowel_tier 'i'
-					word_int = Get interval at time... word_tier begin_vowel
-					word_label$ = Get label of interval... word_tier 'word_int'
-
-					if word_label$ = "PEN "
-						word_label$ = "PEN"
-					endif
-
-					mispronounced$ = right$(word_label$, 3)
+			mispronounced$ = right$(word_label$, 3)
 
 			if mispronounced$ <> "_mp"
 			if mispronounced$ <> "t) "
@@ -122,91 +129,97 @@ for ifile from 1 to n_wav
 			if mispronounced$ <> "ect"
 			if mispronounced$ <> "ake"
 
-			if word_label$ <> "THE" 
+				if word_label$ <> "THE" 
 				if word_label$ <> "WORD" 
-					if word_label$ <> "IS" 
-						if word_label$ <> "" 
-							if word_label$ <> "sp" 
+				if word_label$ <> "IS" 
+				if word_label$ <> "" 
+				if word_label$ <> "sp" 
 
 
 					######### Extract the vowel as a new sound object #########
-
 					selectObject: "Sound 'wavfile$'"
-					Extract part... begin_vowel end_vowel Rectangular vowel_tier no
+					Extract part... begin_vowel end_vowel Rectangular 1 no
 					vowel_extract_name$ = "'wavfile$'_'word_label$'_vowel"
 					Rename... 'vowel_extract_name$'
 
 					######### Calculate median f0 for each interval#########
 					selectObject: "Sound 'vowel_extract_name$'"
-			
+							
  					start 		= 0.00
 					end 		= Get end time
 					interval  	= (end-start)/numintervals
 
 
-      				fileappend "'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt" 'wavfile$''tab$''word_label$''tab$''start''tab$''end''tab$'
-
+      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'wavfile$''tab$''word_label$''tab$''start''tab$''end''tab$'
 
 					######### Calculate mean f0 for each sub-interval#########
 					selectObject: "Sound 'vowel_extract_name$'"
 					To Pitch... 0 f0_minimum f0_maximum
 
+					#### GET OVERALL MEAN / SD F0 #########
+					overall_mean_f0 = Get mean... 0.0 0.0 Hertz
+					overall_sd_f0 = Get standard deviation... 0.0 0.0 Hertz
+										
+
 					total = 0
-         			number = 0
+         				number = 0
 
 					intvl_num = 1
-      				position  = start
+      					position  = start
 
-    				while position <= end
-
-							# Within each interval, take f0 measurements every 0.01 s interval 
-						
-							while position < start + intvl_num * interval
-
-            				hertz  = Get value at time... position Hertz Linear
-			
-
+    					while position <= end
+					# Within each interval, take f0 measurements every 0.01 s interval 
+					
+						while position < start + intvl_num * interval
+						hertz  = Get value at time... position Hertz Linear
+		
            					if hertz = undefined
 	         					 # do nothing
-            				else
-                  				total  = total + hertz
-                  				number = number + 1
-            				endif
-								position = position + analysis_points_time_step
+            					else
+                  					total  = total + hertz
+                  					number = number + 1
+            					endif
+							position = position + analysis_points_time_step
          					endwhile
 
       		
-					# Calculate mean & median
-					average  = total / number
+						# Calculate mean & median
+						average  = total / number
 
 						if total = 0
 							average$ = "NA"
-        				else
+        					else
 							average$ = fixed$(average, 1)
 						endif
 
 					
-      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt" 'average$''tab$'
+      						fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'average$''tab$'
 
-         				intvl_num = intvl_num + 1
+         					intvl_num = intvl_num + 1
 
-		endwhile
+					endwhile
 
+					#### ADD IN MEAN / SD F0 ########
+				      	fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'overall_mean_f0''tab$''overall_sd_f0''tab$'
+				      	fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'subject_group$''tab$'
 
-      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'current_subject$'.txt" 'newline$'
+      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'newline$'
 
 	
-    endif				
-    endif	
-    endif	
-    endif
-    endif	
-    endif
-    endif
-    endif
-    endif
-    endif
-    endif
+    				endif				
+    				endif	
+    				endif				
+    				endif
+				endif
+    			endif	
+    			endif
+    			endif	
+    			endif
+    			endif
+    		endif
+    		endif
+    		endif
+   		endif
 	endfor
 endfor
 
