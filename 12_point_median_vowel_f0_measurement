@@ -86,11 +86,9 @@ for ifile from 1 to n_wav
 	# Measure number of tiers
 	number_tiers = Get number of tiers
 	
-	if number_tiers = 2
-		adjustment_voweled = 0
-	endif
+	adjustment_voweled = 0
 
-	if adjustment_voweled = 3
+	if number_tiers > 2
 		adjustment_voweled = 1
 	endif
 
