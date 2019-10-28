@@ -28,16 +28,16 @@
 
 form Give the working directories
 	comment Give the directory for the .wav and .textgrids (include final /)
-	text directory /Volumes/Michelle_2018/!Siri-DS_Data(low & high error rate)/Younger_Adults_LowErrorRate/Data/
+	text directory /data/
 
 	comment Give the outputdirectory for the f0 measurements (include final /)
-	text outputdir /Volumes/Michelle_2018/!Siri-DS_Data(low & high error rate)/Younger_Adults_LowErrorRate/Measurements/F0/
+	text outputdir /data/output/
 
 	comment Give the string at the end of the TextGrid (if applicable)
 	text textgridstring 
   
 	comment Give subject group info
-	text subject_group YoungerAdults
+	text subject_group Group1
   
 endform 
 
