@@ -1,6 +1,6 @@
 ########################################################################################
 #
-# Get median vowel f0 at 12 intervals for all files in a a list of subdirectories
+# Get mean vowel f0 at 12 intervals for all files in a directory
 ## adapted from https://www.acsu.buffalo.edu/~cdicanio/scripts/Get_pitch.praat
 #
 #
@@ -11,13 +11,13 @@
 #
 # Excludes 'THE', 'WORD', and 'IS'
 #
-# Skips textgrid annotations with '_mp', 'mistake', 'misprounced', '(incorrect)', 'skipped'
+# Skips textgrid annotations with '_mp', 'mistake', 'mispronounced', '(incorrect)'
 #
-# Loops through separate subject directories
-# In each subject subdir, all files in are in a '_Voweled' folder 
+# MC, 11/24/18
 #
-# MC- 11/24/18
-# Updated 10/21/19	- added file loop 	
+# Updated 10/11/19  MC - added mean / sd f0 across the 12 measurements, add in subject group
+# fixed error in vowel extraction; add automatic tier counting / adjustment to get vowel/word tiers
+# 		
 #
 #
 ########################################################################################
@@ -28,22 +28,22 @@
 
 form Give the working directories
 	comment Give the directory for the .wav and .textgrids (include final /)
-	text directory /Volumes/Data/
+	text directory /Volumes/Michelle_2018/!Siri-DS_Data(low & high error rate)/Younger_Adults_LowErrorRate/Data/
 
 	comment Give the outputdirectory for the f0 measurements (include final /)
-	text outputdir /Volumes/Measurements/F0/
+	text outputdir /Volumes/Michelle_2018/!Siri-DS_Data(low & high error rate)/Younger_Adults_LowErrorRate/Measurements/F0/
 
 	comment Give the string at the end of the TextGrid (if applicable)
 	text textgridstring 
   
 	comment Give subject group info
-	text subject_group HighErrorRate
+	text subject_group YoungerAdults
   
 endform 
 
 
-f0_minimum = 75
-f0_maximum = 600
+f0_minimum = 70
+f0_maximum = 300
 new_db = 80
 
 #Number of intervals you wish to extract pitch from.
@@ -53,14 +53,14 @@ analysis_points_time_step = 0.01
 
 
 # (2) Define headers 
-header_row$ = "Filename" + tab$ + "Word" + tab$ + "Start" + tab$ + "End" 
+header_row$ = "Filename" + tab$ + "SubjectGroup" + tab$ + "Word" + tab$ + "Start" + tab$ + "End" + tab$ + "Intensity"
 
 for i to numintervals
-header_row$ = header_row$ + tab$ + "Median_f0_Interval_'i'"
+header_row$ = header_row$ + tab$ + "Mean_f0_Interval_'i'"
 endfor
 
 # (2A) Add in Mean and SD f0 across measurements 
-header_row$ = header_row$ + tab$ + "Mean_f0" + tab$ + "Sd_f0" + tab$ + "SubjectGroup" + "SubjectNumber"
+header_row$ = header_row$ + tab$ + "Mean_f0" + tab$ + "Sd_f0" + tab$
 
 
 header_row$ = header_row$ + newline$
@@ -69,39 +69,19 @@ header_row$ > 'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'
 
 
 
-## (2) Loop through subject files 
-Create Strings as directory list...  list 'directory$'
-Rename... "Strings_Directory"
-
-n_subdir = Get number of strings
-
-for idirectory from 1 to n_subdir
-
-	select Strings _Strings_Directory_
-	curr_directory$ = Get string... 'idirectory'
-
-	# Set new subdirectory and subject number
-	shortened_subdir$ = right$(curr_directory$, 2)
-	subdirectory$ = directory$ + curr_directory$ + "/" + shortened_subdir$
-
-
-
 # (3) Loop through TextGrids 
-Create Strings as file list...  list 'subdirectory$'*.wav
+Create Strings as file list...  list 'directory$'*.wav
 n_wav = Get number of strings
 
 for ifile from 1 to n_wav
 
 	select Strings list
 	curr_file$ = Get string... 'ifile'
-   	Read from file... 'subdirectory$''curr_file$'
+   	Read from file... 'directory$''curr_file$'
    	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
    	object_name$ = selected$ ("Sound")
 	wavfile$ = curr_file$ - ".wav" 
-	Read from file... 'subdirectory$''wavfile$''textgridstring$'.TextGrid
-
-	# Subject number
-	subnum$ = left$ (curr_file$, 3)
+	Read from file... 'directory$''wavfile$''textgridstring$'.TextGrid
 
 	# Measure number of tiers
 	number_tiers = Get number of tiers
@@ -138,20 +118,18 @@ for ifile from 1 to n_wav
 			word_int = Get interval at time... word_tier begin_vowel
 			word_label$ = Get label of interval... word_tier 'word_int'
 	
-
-			mispronounced$ = right$(word_label$, 3)
-
-
 			if word_label$ = "PEN "
 				word_label$ = "PEN"
 			endif
+
+
+			mispronounced$ = right$(word_label$, 3)
 
 			if mispronounced$ <> "_mp"
 			if mispronounced$ <> "t) "
 			if mispronounced$ <> "ct)"
 			if mispronounced$ <> "ect"
 			if mispronounced$ <> "ake"
-			if mispronounced$ <> "ped"
 
 				if word_label$ <> "THE" 
 				if word_label$ <> "WORD" 
@@ -172,9 +150,12 @@ for ifile from 1 to n_wav
  					start 		= 0.00
 					end 		= Get end time
 					interval  	= (end-start)/numintervals
+					
+					mean_intensity = Get intensity (dB)
+
+      				fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'wavfile$''tab$''subject_group$''tab$''word_label$''tab$''start''tab$''end''tab$''mean_intensity''tab$'
 
 
-      					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'wavfile$''tab$''word_label$''tab$''start''tab$''end''tab$'
 
 					######### Calculate mean f0 for each sub-interval#########
 					selectObject: "Sound 'vowel_extract_name$'"
@@ -186,19 +167,23 @@ for ifile from 1 to n_wav
 										
 
 					total = 0
-         				number = 0
+         			number = 0
 
 					intvl_num = 1
-      					position  = start
+      				position  = start
 
-    					while position <= end
-					# Within each interval, take f0 measurements every 0.01 s interval 
+
+					########### Within each interval, take f0 measurements every 0.01 s interval ###########
+    				while position <= end
 					
 						while position < start + intvl_num * interval
 						hertz  = Get value at time... position Hertz Linear
 		
+							average$ = "NA"
+
            					if hertz = undefined
 	         					 # do nothing
+								average$ = "NA"
             					else
                   					total  = total + hertz
                   					number = number + 1
@@ -223,10 +208,11 @@ for ifile from 1 to n_wav
 
 					endwhile
 
+
+
+
 					#### ADD IN MEAN / SD F0 ########
 				      	fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'overall_mean_f0''tab$''overall_sd_f0''tab$'
-				      	fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'subject_group$''tab$''subnum$'
-
       					fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'newline$'
 
 	
@@ -240,18 +226,14 @@ for ifile from 1 to n_wav
     			endif	
     			endif
     			endif
-				endif
     		endif
     		endif
     		endif
    		endif
 	endfor
-endfor
 
 select all 
-minus Strings _Strings_Directory_
-
+minus Strings list
 Remove
 
-
-endfor 
+endfor
