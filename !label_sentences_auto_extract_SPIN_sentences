@@ -1,0 +1,116 @@
+######################################################################
+#
+# Stimuli development: given a force aligned file (with a TextGrid) (e.g., via FAVE Align, DARLA, etc.), 
+# find the silences between stimuli ("sp") and use that to extract sentences into separate soundfiles. 
+#
+# Adds a new tier on 3 ("Sentence"); finds "sp" and adds a boundary on the sentence tier. 
+# Labels each sentence with a number (corresponding to the SPIN numbers); extracts all sentences
+# Saves the sentences to an output folder 
+#
+# Includes a step where you can clean up any errant "sp"s in the textgrid 
+#
+#  NEED: to open soundfile and associated textgrid in Praat objects window
+#
+# Michelle Cohn, 12/20/19
+#
+######################################################################
+
+
+############ (1) Define filenames & output directory
+speaker_name$ = "Salli"
+condition$ = "Regular"
+
+curr_soundfile$ = "Sound SPIN_'speaker_name$'"
+curr_textgrid$ = "TextGrid SPIN_'speaker_name$'"
+output_dir$ = "/Users/michellecohn/output/
+
+
+############ (2) Create third tier in textgrid
+selectObject: "'curr_textgrid$'"
+Insert interval tier: 3, "Sentence"
+
+
+############ (3) Find all "sp"s, looping through; 
+
+selectObject: "'curr_textgrid$'"
+segment_tier = 1
+number_of_intervals = Get number of intervals... segment_tier
+				
+
+ 	for i from 1 to number_of_intervals
+		selectObject: "'curr_textgrid$'"
+		interval_label$ = Get label of interval... segment_tier 'i'
+
+		if interval_label$ = "sp"
+			
+			############ Get start and end time; calculate dur and divide by 2; 
+			############ and add to "start time" 
+ 
+			begin_sp = Get starting point... segment_tier 'i'
+           	end_sp = Get end point... segment_tier 'i'
+			start_sp = begin_sp
+			Insert boundary... 3 'start_sp'
+					
+			
+		endif
+	endfor 
+
+
+############ (4) Add sentence labels on 3rd tier 
+
+selectObject: "'curr_textgrid$'"
+sentence_tier = 3
+number_of_intervals = Get number of intervals... sentence_tier
+
+
+
+########## (5) Visually inspect tier 3 (can just open TextGrid and zoom out to see where extra boundaries are; counter on the 
+########## right bottom side (e.g., 87/107) will show how many total sentences there are ... delete any boundaries
+
+	beginPause: "Correct soundfile: 'extra_boundaries'"
+
+	#Edit
+	endPause: "Continue", 1
+
+
+
+counter = 0
+selectObject: "'curr_textgrid$'"
+
+number_of_intervals = Get number of intervals... sentence_tier
+
+ 	for i from 1 to number_of_intervals
+		counter = counter + 1
+		Set interval text: sentence_tier, counter, "'counter'"
+	endfor
+
+
+
+########### (6) Extract all items from tier 3 
+selectObject: "'curr_textgrid$'"
+plusObject: "'curr_soundfile$'"
+Extract all intervals... sentence_tier 0
+
+
+
+############ (7) Rename sentences & save to folder
+select all
+minusObject: "'curr_textgrid$'"
+minusObject: "'curr_soundfile$'"
+
+n = numberOfSelected("Sound")
+n= n+ 1
+for icounter from 1 to n
+    curr_sound_index = selected("Sound",'icounter')
+	select curr_sound_index
+	name$ = selected$ ("Sound")
+    Write to WAV file... 'output_dir$'Sentence_'name$'_'speaker_name$'_'condition$'.wav
+
+	select all
+
+endfor
+
+
+select all
+Remove
+
