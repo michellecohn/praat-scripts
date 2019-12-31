@@ -1,0 +1,79 @@
+#########################################################
+#
+# Replace mean f0 of all soundfiles to new Hz
+# given a textfile (tab delimited) list of f0s 
+#
+#
+# MC 12/30/19
+#
+# todo: extract column header string & pull new f0 value
+#
+#########################################################
+
+table_path$ = "/Users/michellecohn/Data/f0_levels.txt"
+
+inputdir$ = "/Users/michellecohn/Desktop/Data/stim/"
+outputdir$ = "/Users/michellecohn/Desktop/Data/new_f0/"
+
+#### Set f0 ranges
+minF0 = 70
+maxF0 = 300
+#######################################################
+
+
+
+####################### Loop through f0 levels #######################
+Read Table from tab-separated file... 'table_path$'
+
+Get number of rows
+n_f0_values = Get number of rows
+
+for if0 from 1 to n_f0_values
+	select Table f0_levels
+	new_f0 = Get value... if0 180
+  # Here 180 = the first column header 
+
+
+	####################### Loop through files #######################
+	Create Strings as file list... list 'inputdir$'*.wav
+	number_files = Get number of strings
+
+
+	for icounter from 1 to number_files
+		select Strings list
+		sound$ = Get string... icounter
+		Read from file... 'inputdir$''sound$'
+		name$ = selected$ ("Sound")
+
+		##### (1) Select the soundobject and get mean f0
+		select Sound 'name$'
+		To Pitch... 0 minF0 maxF0
+		curr_f0 = Get mean... 0 0 Hertz
+		Remove
+
+
+		##### (2) Apply formula and resynthesize  
+		select Sound 'name$'
+		To Manipulation... 0.01 minF0 maxF0
+		Extract pitch tier
+		Formula... self*new_f0/curr_f0
+		select PitchTier 'name$'
+		plus Manipulation 'name$'
+		Replace pitch tier
+		select Manipulation 'name$'
+		resynthesis = Get resynthesis (overlap-add)
+
+		#### (3) Write new wavfile into output directory
+		name$ = selected$ ("Sound")
+		Write to WAV file... 'outputdir$'Sentence_'name$'_f0_'new_f0'.wav
+
+		#select all
+		#minus Table f0_levels
+		#Remove
+
+
+	endfor
+endfor
+
+
+
