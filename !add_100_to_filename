@@ -1,0 +1,73 @@
+###########################
+#
+# Modify filename 
+#
+# Add 100 to sentence number 
+#
+# MC 
+
+###########################
+
+
+directory$ = "/Volumes/input/"
+
+outputdirectory$ = "/Volumes/output/"
+
+
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+#for ifile to 1
+
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	
+	# Get current sentence number 
+
+	filenamelength = length(sound$)
+	writeInfoLine: sound$
+	#appendInfoLine: filenamelength
+
+	# (1) Find index of first _ (Sentence_1_Speaker_Text.wav)
+	indexunderscore = index(sound$, "_")
+	
+	#appendInfoLine: indexunderscore
+
+	# Remove everything before that 
+	remaininglength = filenamelength - indexunderscore 
+	remainingstring$ = right$(sound$, remaininglength)
+	
+	appendInfoLine: remainingstring$
+
+	# (1) Find index of second _ (Sentence_1_Speaker_Text.wav)
+	
+	indexunderscore2 = index(remainingstring$, "_")
+	newstringlength = length(remainingstring$)
+	remaininglength2 = newstringlength - indexunderscore2 
+
+	# Get number 
+	numberindex  = indexunderscore2 - 1
+	number$ = left$(remainingstring$, numberindex)
+	number = number(number$)
+	number = number +100
+
+	appendInfoLine: number
+
+	# Get rest of speaker / condition 
+	speakercond$ = right$(remainingstring$, remaininglength2)
+
+	appendInfoLine: speakercond$
+	appendInfoLine: "Sentence_'number'_'speakercond$'"
+
+
+	Write to WAV file... 'outputdirectory$'Sentence_'number'_'speakercond$'
+
+
+
+	
+
+endfor
+
