@@ -1,0 +1,27 @@
+#####################################################################
+#
+# Save textgrids with the appropriate extension!
+#
+# MC 3/23/20
+#
+#####################################################################
+
+Save directory$ = "/Volumes/Michelle_2018/inputdir/"
+outputdirectory$ = "/Volumes/Michelle_2018/outputdir"
+
+Create Strings as file list...  list 'directory$'
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+  Read from file... 'directory$''curr_file$'
+   	
+  # Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+  object_name$ = selected$ ("TextGrid")
+	
+	Write to text file... 'outputdirectory$''object_name$'.TextGrid
+
+
+endfor
