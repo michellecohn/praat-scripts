@@ -1,0 +1,32 @@
+##########################################
+#
+# Remove part of filename end and resave!
+#
+# 
+# MC 3/23/20
+#
+##########################################
+
+
+directory$ = "/Volumes/Michelle_2018/input/"
+outputdirectory$ = "/Volumes/Michelle_2018/output/"
+
+end_of_name_to_remove$ = "_MS"
+
+
+Create Strings as file list...  list 'directory$'.TextGrid
+n_textgrids = Get number of strings
+
+for ifile from 1 to n_textgrids
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+  Read from file... 'directory$''curr_file$'
+  
+  # Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+  object_name$ = selected$ ("TextGrid")
+	object_name$ = object_name$ - end_of_name_to_remove$
+	
+	Write to text file... 'outputdirectory$''object_name$'.TextGrid
+
+
+endfor
