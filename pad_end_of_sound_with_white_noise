@@ -43,9 +43,9 @@ for i from 1 to n
 	  currfilename$ = curFile$ - ".wav"
 	  Save as WAV file... 'outputdir$''currfilename$'_plusnoise.wav
 
-  select all
-  minus stimList 
-  Remove
+  	select all
+  	minus stimList 
+  	Remove
 
 
 endfor
