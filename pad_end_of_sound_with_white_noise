@@ -1,0 +1,51 @@
+##########################################################
+#
+# Pad the end of each sound with 1 second of white noise
+#
+# MC 3.31.20 
+#
+##############################################################
+
+stimuli_folder$ = "/Desktop/research_folder/"
+outputdir$ = "/Desktop/research_folder/output/"
+
+# Define duration in seconds
+white_noise_dur = 1.0 
+samplingfreq = 24000
+
+stimList = Create Strings as file list... stimList 'stimuli_folder$'*.wav
+n = Get number of strings
+
+for i from 1 to n
+#for i from 1 to 1
+
+	  select stimList
+
+	  curFile$ = Get string... 'i'
+	  curSound = Read from file... 'stimuli_folder$''curFile$'
+	  Rename... word1
+	  Override sampling frequency... 'samplingfreq'
+	  Scale intensity... 65
+
+
+	  Create Sound from formula... whitenoise 1 0.0 'white_noise_dur' 'samplingfreq' randomGauss(0,1)
+	  Scale intensity... 45
+
+	  selectObject: "Sound word1"
+	  plusObject: "Sound whitenoise" 
+
+	  Concatenate
+	  Rename... adjustedsound
+
+
+	  #Save as WAV file... 'stimuli_folder$'_adjusted_'curFile$'.wav
+
+	  currfilename$ = curFile$ - ".wav"
+	  Save as WAV file... 'outputdir$''currfilename$'_plusnoise.wav
+
+  select all
+  minus stimList 
+  Remove
+
+
+endfor
