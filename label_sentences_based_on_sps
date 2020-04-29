@@ -1,0 +1,110 @@
+######################################################################################################
+#
+# At each "sp" (excluding where it falls in a sentence), label sentences in new tier
+#
+#
+# NOTE: currently loops through folders and THEN files in a directory
+#
+# MC 4/28/20
+# 
+######################################################################################################
+
+
+### DEFINE I/O and new sentence tier ##
+
+form Give the working directories
+
+	comment Give the directory for the .wav and .textgrids (include final /)
+	text directory michellecohn/datafiles/
+
+	comment Give the outputdirectory for the adjusted TextGrids measurements (include final /)
+	text outputdir michellecohn/datafiles/output/
+
+endform
+
+# Define tiers
+word_tier = 2
+sentence_tier = 3
+
+# Use this if your TextGrid has a string at the end (.wav and .TextGrid need to otherwise match exactly)
+textgridstring$ = "" 
+
+
+## (1) Loop through Folders
+
+Create Strings as directory list... list 'directory$'
+Rename... Folder_list
+n_folders = Get number of strings
+
+for ifolder from 1 to n_folders
+
+	select Strings Folder_list
+	curr_folder$ = Get string... 'ifolder'
+
+
+  ## (2) Loop through TextGrids 
+  #Create Strings as file list...  list 'directory$'*.TextGrid
+  Create Strings as file list...  list 'directory$''curr_folder$'/*.wav
+
+  n_wav = Get number of strings
+
+
+  for ifile from 1 to n_wav
+  #for ifile from 1 to 1
+
+	  select Strings list
+	  curr_file$ = Get string... 'ifile'
+   	Read from file... 'directory$''curr_folder$'/'curr_file$'
+
+   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   	object_name$ = selected$ ("Sound")
+	  wavfile$ = curr_file$ - ".wav" 
+	  Read from file... 'directory$''curr_folder$'/'wavfile$''textgridstring$'.TextGrid
+	  name$ = selected$ ("TextGrid")
+
+
+
+	  ########################################################
+	  # Create 3rd boundary (sentence tier)
+	  #selectObject: "'curr_textgrid$'"
+	  Insert interval tier: sentence_tier, "Sentence"
+
+
+
+	  ############ (3) Find all "sp"s, looping through; 
+	  number_of_intervals = Get number of intervals... word_tier
+
+	  for i from 1 to number_of_intervals
+		  interval_label$ = Get label of interval... word_tier 'i'
+
+		  if interval_label$ = "sp"
+	
+			  # Get next interval and make sure it's not "the"!
+			  next_interval = i+1
+
+			  if next_interval <= number_of_intervals
+			    # Mark if the next interval is the start of the sentence!!
+				  next_interval_label$ = Get label of interval... word_tier 'next_interval'
+          
+            # Here's where you can set the list of words that should begin the next sentence 
+            # todo: pull this in from a csv as a table!
+					  if next_interval_label$ = "JADE" or next_interval_label$ = "JEN" or next_interval_label$ = "JED" or next_interval_label$ = "JANE" or next_interval_label$ = "DODD" or next_interval_label$ = "DAWN" or next_interval_label$ = "JUDE" or next_interval_label$ = "JUNE"
+	
+	
+						  ############ Get start and end time; calculate dur and divide by 2; 
+						  ############ and add to "start time" 
+ 
+						  begin_sp = Get starting point... word_tier 'i'
+           		end_sp = Get end point... word_tier 'i'
+						  Insert boundary... sentence_tier 'begin_sp'
+						  Insert boundary... sentence_tier 'end_sp'
+		
+				    endif
+			  endif
+		endif
+	endfor 
+
+Write to text file... 'outputdir$''curr_folder$'/'name$'.TextGrid
+
+endfor
+endfor
