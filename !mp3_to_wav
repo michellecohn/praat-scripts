@@ -1,0 +1,24 @@
+#########################################
+#
+# Convert all .mp3 to .wav in a folder 
+#
+# MC 8/13/20
+#
+#########################################
+
+directory$ = "/Volumes/Extreme_SSD/!!!!! Gunrock User Studies (In lab vs. online)/Transcribed!_Inlab_March10"
+
+Create Strings as file list...  list 'directory$'/*.mp3
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+   	Read from file... 'directory$'/'curr_file$'
+
+   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   	object_name$ = selected$ ("Sound")
+	wavfile$ = curr_file$ - ".wav" 
+	Save as WAV file: "'directory$'/'object_name$'.wav"
+
+endfor
