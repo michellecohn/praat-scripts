@@ -1,0 +1,72 @@
+####################################
+#
+# Load all .mp3 files in a folder
+# & save as .wav
+#
+# Option: resample?
+# Option: amplitude normalize?
+#
+# MC 11/9/21
+#
+#
+####################################
+
+
+# (1) Define I/O directories #######
+
+form Give the working directories
+	comment Give the directory for the .mp3 files (include final /)
+	text directory /Users/michellecohn/Desktop/test_script/
+
+	comment Give the outputdirectory for the .wav files (include final /)
+	text outputdir /Users/michellecohn/Desktop/test_script/output/
+
+	comment Override sampling frequency? yes/no
+	choice fs_override
+		button yes
+		button no
+
+	comment If yes (override sampling freq), set the new fs
+	real fs 24000
+	real fs_precision 50
+
+	comment Amplitude normalize? yes/no
+	choice amp_norm
+		button yes
+		button no
+
+	comment If yes (amp normalize), set the new mean dB
+	real new_dB 65.0
+
+
+endform 
+
+
+# Load in sounds
+
+Create Strings as file list... list 'directory$'*.mp3
+number_files = Get number of strings
+
+##########  LOAD IN ALL THE FILES ########## 
+for ifile to number_files
+	select Strings list
+	sound$ = Get string... ifile
+	Read from file... 'directory$''sound$'
+	soundname$ = sound$ - ".mp3"
+
+	if fs_override$ = "yes"
+		Resample... fs fs_precision
+	endif
+
+	if amp_norm$ = "yes"
+		Scale intensity... new_dB
+
+	endif
+
+	Write to WAV file... 'outputdir$'/'soundname$'.wav
+
+	select all
+	minus Strings list
+	Remove
+
+endfor
