@@ -1,0 +1,127 @@
+######################################################################################################
+#
+# Get full sentence from word interval labels
+#
+# NOTE: loops through a folder directory & then file directory
+# 
+#
+# MC 4/28/20
+# 
+######################################################################################################
+
+
+### DEFINE I/O and new sentence tier ##
+
+form Give the working directories
+
+	comment Give the directory for the .wav and .textgrids (include final /)
+	text directory /Users/michellecohn/Desktop/data/input/
+
+	comment Give the outputdirectory for the f0 measurements (include final /)
+	text outputdir /Users/michellecohn/Desktop/data/ready_for_MFA/
+
+endform
+
+
+fs = 16000
+
+## (1) Loop through Folders
+
+Create Strings as directory list... list 'directory$'
+Rename... Folder_list
+n_folders = Get number of strings
+
+for ifolder from 1 to n_folders
+
+	select Strings Folder_list
+	curr_folder$ = Get string... 'ifolder'
+
+
+	## (2) Loop through TextGrids 
+	#Create Strings as file list...  list 'directory$'*.TextGrid
+	Create Strings as file list...  list 'directory$''curr_folder$'/*.wav
+
+	n_wav = Get number of strings
+
+	textgridstring$ = "" 
+
+	for ifile from 1 to n_wav
+
+		select Strings list
+		curr_file$ = Get string... 'ifile'
+   	Read from file... 'directory$''curr_folder$'/'curr_file$'
+
+   		# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   		object_name$ = selected$ ("Sound")
+		  wavfile$ = curr_file$ - ".wav" 
+		  Read from file... 'directory$''curr_folder$'/'wavfile$''textgridstring$'.TextGrid
+		  name$ = selected$ ("TextGrid")
+
+		  ## Count number of intervals in sentence tier
+		  number_of_intervals = Get number of intervals... sentence_tier
+
+ 		  for i from 1 to number_of_intervals
+
+			  selectObject: "TextGrid 'name$'"
+			  begin = Get starting point... sentence_tier 'i'
+        end = Get end point... sentence_tier 'i'
+
+
+			  #### SKIP IF CURRENT LABEL IS "SP"
+			  wordlabel$ = Get interval at time... word_tier begin
+
+			  if wordlabel$ <> "sp" 
+
+
+				  ####### Between those times, get all labels in the 2nd tier 
+				  Edit
+				  editor TextGrid 'name$'
+				  Select... begin end
+				  Extract selected TextGrid (time from 0)
+				  Close
+				  Rename... "'name$'_part"
+
+					
+				  # Count number of intervals in 2nd tier (word)
+				  selectObject: "TextGrid _'name$'_part_" 
+				  number_of_intervals_word = Get number of intervals... word_tier
+	
+				  sentence_label$ = ""
+		
+				  for wordi from 1 to number_of_intervals_word
+				  	interval_label$ = Get label of interval... word_tier 'wordi'
+			
+					  if interval_label$ <> "" and interval_label$ <> "sp" and interval_label$ <> " "
+						  sentence_label$ = sentence_label$ + " " + interval_label$
+					  endif
+				endfor
+
+		
+			  # Replace label with sentence 
+			  selectObject: "TextGrid 'name$'"
+			  Set interval text... 'sentence_tier' 'i' "'sentence_label$'"
+
+
+			  select all 
+			  minus Strings list
+			  minus Strings Folder_list
+			  minus TextGrid 'name$'
+			  Remove
+        
+		endif
+	endfor 
+
+
+	selectObject: "TextGrid 'name$'"
+
+	Write to text file... 'outputdir$'/'name$'.TextGrid
+
+	select all 
+	minus Strings list
+	minus Strings Folder_list
+	Remove
+	endfor
+
+endfor
+
+
