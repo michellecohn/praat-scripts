@@ -1,6 +1,6 @@
 ######################################################################################################
 #
-# Slow down soundfiles + textgrids by a set factor
+# Slow down or speed up soundfiles + textgrids by a set factor
 # (useful for MFA, if speaking rate is too quick)
 #
 # MC 1/25/22
