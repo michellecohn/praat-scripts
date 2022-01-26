@@ -13,12 +13,11 @@
 
 form Give the working directories
 
-	comment Give the directory for the .wav and .textgrids (include final /)
-	text directory /Volumes/Extreme_SSD/data/input/
+  comment Give the directory for the .wav and .textgrids (include final /)
+  text directory /Volumes/Extreme_SSD/data/input/
 
-
-	comment Give the outputdirectory for the f0 measurements (include final /)
-	text outputdir /Volumes/Extreme_SSD/data/sentences_marked/
+  comment Give the outputdirectory for the f0 measurements (include final /)
+  text outputdir /Volumes/Extreme_SSD/data/sentences_marked/
 
   comment Define the sentence tier
   positive word_tier 2
@@ -27,11 +26,10 @@ form Give the working directories
   positive sentence_tier 3
   
   comment Give the starting word for each sentence
-	text sentence_first_word THE
+  text sentence_first_word THE
 
   comment Give the string between sentences (e.g., "sp", "sil", "")
-	text silence_string sp
-  
+  text silence_string sp
 endform
 
 
@@ -43,8 +41,8 @@ n_folders = Get number of strings
 
 for ifolder from 1 to n_folders
 
-	select Strings Folder_list
-	curr_folder$ = Get string... 'ifolder'
+  select Strings Folder_list
+  curr_folder$ = Get string... 'ifolder'
 
 
   ## (2) Loop through TextGrids 
@@ -54,57 +52,53 @@ for ifolder from 1 to n_folders
   n_wav = Get number of strings
 
   for ifile from 1 to n_wav
-  
-	  select Strings list
-	  curr_file$ = Get string... 'ifile'
-   	Read from file... 'directory$''curr_folder$'/'curr_file$'
+    select Strings list
+    curr_file$ = Get string... 'ifile'
+    Read from file... 'directory$''curr_folder$'/'curr_file$'
+    
+    # Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+    object_name$ = selected$ ("Sound")
+    wavfile$ = curr_file$ - ".wav" 
+    Read from file... 'directory$''curr_folder$'/'wavfile$'.TextGrid
+    name$ = selected$ ("TextGrid")
 
-   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
-   	object_name$ = selected$ ("Sound")
-	  wavfile$ = curr_file$ - ".wav" 
-	  Read from file... 'directory$''curr_folder$'/'wavfile$'.TextGrid
-	  name$ = selected$ ("TextGrid")
 
-
-	  ########################################################
-	  # Create a new sentence tier
-  	Insert interval tier: sentence_tier, "Sentence"
-
-	  ############ Find all "sp"s, looping through; 
-  	number_of_intervals = Get number of intervals... word_tier
-
- 	  for i from 1 to number_of_intervals
-		  interval_label$ = Get label of interval... word_tier 'i'
+    ########################################################
+    # Create a new sentence tier
+    Insert interval tier: sentence_tier, "Sentence"
+    
+    ############ Find all "sp"s, looping through; 
+    number_of_intervals = Get number of intervals... word_tier
+    
+    for i from 1 to number_of_intervals
+      interval_label$ = Get label of interval... word_tier 'i'
       
-		  if interval_label$ = silence_string
-	
-			  # Get next interval and make sure it's not "THE"!
-			  next_interval = i+1
+      if interval_label$ = silence_string
+        # Get next interval and make sure it's not "THE"!
+	next_interval = i+1
 
-			  if next_interval <= number_of_intervals
-			    # Mark if the next interval is the start of the sentence!!
-				  next_interval_label$ = Get label of interval... word_tier 'next_interval'
+	if next_interval <= number_of_intervals
+	# Mark if the next interval is the start of the sentence!!
+	  next_interval_label$ = Get label of interval... word_tier 'next_interval'
 				
           if next_interval_label$ = sentence_first_word
-        
-						begin_sp = Get starting point... word_tier 'i'
-           	end_sp = Get end point... word_tier 'i'
-						Insert boundary... sentence_tier 'begin_sp'
-						Insert boundary... sentence_tier 'end_sp'
-		
-				  endif
-			  endif
-		  endif
-	  endfor 
+	    begin_sp = Get starting point... word_tier 'i'
+	    end_sp = Get end point... word_tier 'i'
+	    Insert boundary... sentence_tier 'begin_sp'
+	    Insert boundary... sentence_tier 'end_sp'
+	  endif
+      endif
+    endif
+  endfor 
 
-    ######################################################
+  ######################################################
 
-    Write to text file... 'outputdir$''curr_folder$'/'name$'.TextGrid
+  Write to text file... 'outputdir$''curr_folder$'/'name$'.TextGrid
 
-    #select all 
-    #minus Strings list
-    #minus Strings Folder_list
-    #Remove
+  #select all 
+  #minus Strings list
+  #minus Strings Folder_list
+  #Remove
 
   endfor
 endfor
