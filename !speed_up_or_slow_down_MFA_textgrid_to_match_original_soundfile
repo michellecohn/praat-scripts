@@ -1,0 +1,71 @@
+######################################################################################################
+#
+# Speed back up (or slow down) MFA textgrids to match the original soundfile
+# 
+# (USEFUL if you needed to slow down a soundfile for MFA)
+#
+# MC 1/25/22
+# 
+######################################################################################################
+
+
+### DEFINE I/O and new sentence tier ##
+
+form Give the working directories
+
+	comment Give the directory for the original .wav files + concatenated TG
+	text sound_directory /Users/michellecohn/Desktop/data/ready_for_MFA/
+
+	comment Give the directory for MFA textgrids
+	text mfa_directory /Users/michellecohn/Desktop/data/MFA/
+
+	comment Give the directory for the original TextGrids
+	text orig_directory /Users/michellecohn/Desktop/data/input_dir_master/
+
+	comment Give the outputdirectory for MFA  (include final /)
+	text outputdir /Users/michellecohn/Desktop/data/merged_MFA_TextGrids/
+
+endform
+
+
+## (2) Loop through TextGrids 
+Create Strings as file list...  list 'mfa_directory$'*.TextGrid
+n_wav = Get number of strings
+
+for ifile from 1 to 1
+
+		select Strings list
+		curr_file$ = Get string... 'ifile'
+   	Read from file... 'mfa_directory$''curr_file$'
+		Rename... MFA_TextGrid
+		id$ = curr_file$ - "_SLOWED.TextGrid"
+
+		# LOAD IN ORIGINAL SOUNDFILE! SCALE TEXTGRID
+		Read from file... 'orig_directory$''id$'.wav
+		
+		plusObject: "TextGrid MFA_TextGrid"
+		Scale times
+
+		# LOAD IN CONCATENATED TEXTGRID; SCALE 
+		Read from file... 'sound_directory$''curr_file$'
+		Rename... SENTENCES_SLOWED
+	
+		plusObject: "Sound 'id$'"
+		Scale times
+
+
+		# LOAD IN ORIGINAL TEXTGRID (SENTENCE TIERS)
+		Read from file... 'orig_directory$''id$'.TextGrid
+		Rename... ORIGINAL
+
+
+		### MERGE TEXTGRIDS
+		plusObject: "TextGrid MFA_TextGrid"
+		plusObject: "TextGrid SENTENCES_SLOWED"
+		Merge
+
+		Write to text file... 'outputdir$'/'id$'.TextGrid
+
+endfor
+
+
