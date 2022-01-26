@@ -1,0 +1,68 @@
+######################################################################################################
+#
+# Slow down soundfiles + textgrids by a set factor
+# (useful for MFA, if speaking rate is too quick)
+#
+# MC 1/25/22
+# 
+######################################################################################################
+
+
+### DEFINE I/O and new sentence tier ##
+
+form Give the working directories
+
+	comment Give the directory for the original .wav files + TextGrids
+	#text input_directory /Users/michellecohn/Desktop/data/to_be_slowed/
+	text input_directory /Users/michellecohn/Desktop/data/input_dir_master/audio/
+
+	comment Give the outputdirectory (include final /)
+	text outputdir /Users/michellecohn/Desktop/data/ready_for_MFA/
+
+  comment What factor do you want to change the soundfile + textgrid by?
+  positive duration_factor 1.5
+  
+endform
+
+# Max/min f0 (change if you expect speakers' f0 to be outside this range, e.g. kids)
+min_f0 = 75.0
+max_f0 = 350.0
+
+# Loop through TextGrids 
+Create Strings as file list...  list 'input_directory$'*.wav
+
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+
+  select Strings list
+	curr_file$ = Get string... 'ifile'
+  Read from file... 'input_directory$''curr_file$'
+	id$ = curr_file$ - ".wav"
+	Get total duration
+
+	To Manipulation... 0.01 min_f0 max_f0
+	Extract duration tier
+	Add point... 0.0 duration_factor
+
+	plusObject: "Manipulation 'id$'"
+	Replace duration tier
+	selectObject: "Manipulation 'id$'"
+	Get resynthesis (overlap-add)
+	Rename... SLOWED
+	Save as WAV file... 'outputdir$'/'id$'_SLOWED.wav
+
+  Read from file... 'input_directory$''id$'.TextGrid
+  Rename... SLOWED
+
+	plusObject: "Sound SLOWED"
+	Scale times
+
+	selectObject: "TextGrid SLOWED"
+	Write to text file... 'outputdir$'/'id$'_SLOWED.TextGrid
+   
+  select all 
+  minus Strings list
+  Remove
+
+endfor
