@@ -1,0 +1,53 @@
+######################################################################################################
+#
+# Merge TextGrids (MFA + Original)
+#
+# # Currently: removes tiers 2 and 3 from 'Original' (replaces with word + phone boundaries from MFA)
+# MC 1/20/22
+# 
+######################################################################################################
+
+
+### DEFINE I/O and new sentence tier ##
+
+form Give the working directories
+
+	comment Give the directory for the MFA TextGrids
+	text mfa_directory /Users/michellecohn/Desktop/data/MFA/
+
+	comment Give the directory for the original TextGrids
+	text orig_directory /Users/michellecohn/Desktop/data/input_dir_master/audio/
+
+	comment Give the outputdirectory  (include final /)
+	text outputdir /Users/michellecohn/Desktop/data/merged_MFA_TextGrids/
+
+endform
+
+
+	## (2) Loop through TextGrids 
+	Create Strings as file list...  list 'mfa_directory$'*.TextGrid
+
+	n_wav = Get number of strings
+
+	for ifile from 1 to n_wav
+
+		select Strings list
+		curr_file$ = Get string... 'ifile'
+   	Read from file... 'mfa_directory$''curr_file$'
+		Rename... MFA_TextGrid
+
+   	Read from file... 'orig_directory$''curr_file$'
+		Rename... Original_TextGrid
+		Remove tier... 3
+		Remove tier... 2
+
+		plusObject: "TextGrid MFA_TextGrid"
+		Merge
+
+	Write to text file... 'outputdir$'/'curr_file$'
+
+	select all 
+	minus Strings list
+	Remove
+
+endfor
