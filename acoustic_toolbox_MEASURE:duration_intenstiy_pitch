@@ -1,0 +1,84 @@
+########################################################################################
+#
+# Acoustic measurement 'toolbox'
+# 
+# Calculates the mean [intenstiy, duration, f0, max f0] over each soundfile
+#
+# Generates a .txt output file
+#
+# Michelle Cohn 1/12/2021; updated 3/9/22
+#
+#########################################################################################
+# (1) Define I/O directories #######
+form Give the working directories
+    comment Give the directory for the .wav and .textgrids (include final /)
+    text directory /Volumes/Michelle_2022/data/Stimuli(raw)/
+    
+    comment Give the outputdirectory for the f0 measurements (include final /)
+    text outputdir /Volumes/Michelle_2022/data/acoustic_measurements/
+    
+    comment Give the string at the end of the TextGrid (if it differs from the .wav file)
+    text textgridstring
+    
+    comment Give subject group info
+    text subject_group Group_1
+    
+endform 
+
+############# SET PARAMETERS #################
+# Adapt f0 min/max depending on your speakers (e.g., if you have child voices!)
+f0_minimum = 78
+f0_maximum = 350
+
+################ DEFINE HEADER ROW #############
+header_row$ = "Filename" + tab$ + "SubjectGroup" +  tab$+ "(Real)Time_Start" + tab$ + "(Real)Time_End"  + "Intensity" + tab$ + "RMS" + tab$ + "Mean_f0" + tab$ + "Sd_f0" + tab$ + "Max_f0"
+header_row$ > 'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt
+
+################  Loop through files ################
+# (3) Loop through TextGrids in subject subfolders
+Create Strings as file list...  list 'directory$'/*.wav
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+    select Strings list
+    curr_file$ = Get string... 'ifile'
+    Read from file... 'directory$'/'curr_file$'
+    soundid = selected("Sound")
+    object_name$ = selected$ ("Sound")
+    wavfile$ = curr_file$ - ".wav" 
+        
+    ######## GET BASIC INFO FROM THE SOUNDFILE 
+    start       = 0.00
+    end         = Get end time
+    interval    = (end-start)/numintervals
+    utterance_duration = end - start        
+    
+    mean_intensity = Get intensity (dB)
+    rms = Get root-mean-square... start end
+    fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'wavfile$''tab$''subject_group$''tab$''start''tab$''end''tab$''mean_intensity''tab$''rms''tab$'
+    
+    ########################### BEGIN PITCH MEASUREMENT #############
+    # Don't try to get pitch measurements if it's shorter than 40 ms.... 
+    if utterance_duration > 0.040
+    
+      ######### Calculate mean f0 for each sub-interval#########
+      To Pitch... 0 f0_minimum f0_maximum
+      
+      #### GET OVERALL MEAN / SD F0 / MAX F0 #########
+      overall_mean_f0 = Get mean... 0.0 0.0 Hertz
+      overall_sd_f0 = Get standard deviation... 0.0 0.0 Hertz
+      max_f0 = Get maximum... 0.0 0.0 Hertz Parabolic
+                                    
+      #### ADD IN MEAN / SD F0 ########
+      fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'overall_mean_f0''tab$''overall_sd_f0''tab$''max_f0''tab$'
+      total = 0
+      number = 0
+                        
+    # ENDIF shorter than 40 ms
+   endif
+    
+  select all 
+  minus Strings list
+  Remove
+
+endfor
