@@ -1,0 +1,121 @@
+################################################################################################
+#
+# Acoustic 'toolbox'
+#
+# Michelle Cohn 1/20/2020; updated by Eleonora Beier 3/9/22
+#
+# Takes acoustic measurements [intensity, duration, f0] over 
+# each labeled interval of a textgrid
+#
+# Will get labels (e.g., condition, stim number) from the same timepoint on other tiers
+# and print to the output file
+#
+# Generates a .txt output file
+#
+# NEED: .wav file + .TextGrid file with the same name
+#
+################################################################################################
+
+
+################ Set directory ################
+#set directory. alternatively, use chooseDirectory to open selection window
+directory$ = "/Desktop/data/"
+outputdir$ = "/Desktop/data/measurements/"
+#directory$ = chooseDirectory$ ("Choose the directory containing sound files and textgrids")
+#directory$ = "'directory$'" + "/" 
+
+outputfilename$ = "Praat_measurements"
+
+#list files in the directory
+Create Strings as file list... list 'directory$'*.wav
+number_files = Get number of strings
+
+
+################ Set parameters ################
+word_tier = 1
+condition_tier = 3
+stim_num_tier = 4
+f0_minimum = 78
+f0_maximum = 300
+
+################ DEFINE HEADER ROW #############
+header_row$ = "Filename" + tab$ + "Word" + tab$+ "(Real)Time_Start" + tab$ + "(Real)Time_End"  + tab$ + "Duration"  + tab$ + "Overall_Intensity" + tab$ + "Mean_f0" + tab$ + "Sd_f0" + tab$ + "Max_f0"
+header_row$ = header_row$ + newline$
+header_row$ > 'outputdir$''outputfilename$'.txt
+
+################ Loop through files ################
+#open each file and extract intensity, f0 and duration
+for ifile to number_files
+  select Strings list
+  #select sound filename
+  sound$ = Get string... ifile
+  #open sound file
+  Read from file... 'directory$''sound$'
+  #get the name of this soundfile (without ".wav")
+  soundname$ = selected$ ("Sound")
+  # identify associated TextGrid
+  gridfile$ = "'directory$''soundname$'.TextGrid"   
+  
+  if fileReadable (gridfile$)
+    Read from file... 'gridfile$'
+    select TextGrid 'soundname$'
+    #get the number of intervals in the word tier
+    number_intervals = Get number of intervals... word_tier 
+            
+      ###########  Loop through intervals in text grid #####################################################################
+      # Go through all intervals in the file
+        
+      for interval to  number_intervals
+        select TextGrid 'soundname$'
+        #get info from tiers
+        word_label$ = Get label of interval... word_tier 'interval'
+        #cond_label$ = Get label of interval... condition_tier 'interval'
+        #stim_num$ = Get label of interval... stim_num_tier 'interval'
+          
+        #if the condition labe is not empty
+          if word_label$ <> ""
+            start = Get starting point... word_tier 'interval'
+            end = Get end point... word_tier 'interval'              
+            word_duration = end - start
+            #select sound and extract info
+            selectObject ("Sound 'soundname$'")
+              
+            #extract section between start and end of this interval
+            #arguments: start/end, shape (always use rectangular), relative width (always use 1), preserve times (yes/no)
+            Extract part...  start end rectangular 1 no
+              
+            segment_extract_name$ = "'soundname$'_'word_label$'_segment"
+            Rename... 'segment_extract_name$'
+            #select extracted segment and measure intensity
+            selectObject: "Sound 'segment_extract_name$'"
+            mean_intensity = Get intensity (dB)
+              
+            #add info to file
+            fileappend "'outputdir$''outputfilename$'.txt" 'soundname$''tab$''word_label$''tab$''start''tab$''end''tab$''word_duration''tab$''mean_intensity''tab$'
+                    
+            ########################### BEGIN PITCH MEASUREMENT #############
+            # Don't try to get pitch measurements if it's shorter than 40 ms.... 
+            if word_duration > 0.040
+              #Extract f0
+              To Pitch... 0 f0_minimum f0_maximum
+                
+              #### GET OVERALL MEAN / SD F0 / MAX F0 #########
+              overall_mean_f0 = Get mean... 0.0 0.0 Hertz
+              overall_sd_f0 = Get standard deviation... 0.0 0.0 Hertz
+              max_f0 = Get maximum... 0.0 0.0 Hertz Parabolic     
+              #add info to file
+              fileappend "'outputdir$''outputfilename$'.txt" 'overall_mean_f0''tab$''overall_sd_f0''tab$''max_f0''tab$'
+    
+             endif 
+               
+             #add new line
+             fileappend "'outputdir$''outputfilename$'.txt" 'newline$'
+          
+          endif 
+        endfor 
+     
+      #remove files from Praat Objects window (otherwise it reaches maximum of 1000 objects)
+      select all 
+      minus Strings list
+      Remove
+endfor
