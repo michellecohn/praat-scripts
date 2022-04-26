@@ -1,0 +1,64 @@
+############################################################
+#
+# Delete tier from TextGrid for one type of file (here *IDS) and
+# export it to a folder for MFA (montreal forced aligner)
+#
+#
+# Copy TextGrid (no deleting tier) for another type (here *ADS)
+# to MFA folder
+#
+#
+# MC 2/15/22
+#
+############################################################
+
+tier_number_to_remove = 2
+
+inputdirectory$ = "/Users/michellecohn/Desktop/data/"
+outputdirectory$ = "/Users/michellecohn/Desktop/data/ready_for_MFA/"
+
+stimList = Create Strings as file list... stimList 'inputdirectory$'*IDS.TextGrid
+n = Get number of strings
+
+for i from 1 to n
+
+	# READ IN EACH STIMULUS
+	select stimList
+
+	curFile$ = Get string... 'i'
+	curSound = Read from file... 'inputdirectory$''curFile$'
+	id$ = curFile$ - ".TextGrid"
+
+	Remove tier... tier_number_to_remove
+
+	Save as text file... 'outputdirectory$''id$'.TextGrid
+
+	select all
+	minus stimList
+	Remove
+
+endfor
+
+
+#### Then move all ADS...
+
+stimList = Create Strings as file list... stimList 'inputdirectory$'*ADS.TextGrid
+n = Get number of strings
+
+for i from 1 to n
+
+	# READ IN EACH STIMULUS
+	select stimList
+
+	curFile$ = Get string... 'i'
+	curSound = Read from file... 'inputdirectory$''curFile$'
+	id$ = curFile$ - ".TextGrid"
+
+
+	Save as text file... 'outputdirectory$''id$'.TextGrid
+
+	select all
+	minus stimList
+	Remove
+
+endfor
