@@ -1,0 +1,41 @@
+################################
+#
+# Override sampling frequency; e.g., all --> 16000 Hz
+#
+#
+# MC 3/25/21
+#
+################################
+
+
+
+inputdirectory$ = "/Users/michellecohn/data/input/"
+outputdirectory$ = "/Users/michellecohn/data/output/"
+
+new_fs = 16000
+precision = 50
+
+stimList = Create Strings as file list... stimList 'inputdirectory$'*.wav
+n = Get number of strings
+
+for i from 1 to n
+#for i from 1 to 1
+
+	# READ IN EACH STIMULUS
+	select stimList
+
+	curFile$ = Get string... 'i'
+	curSound = Read from file... 'inputdirectory$''curFile$'
+	id$ = curFile$ - ".wav"
+
+	Resample... new_fs precision
+
+	Save as WAV file... 'outputdirectory$''id$'.wav
+
+	select all
+	minus stimList
+	Remove
+
+endfor
+
+	
