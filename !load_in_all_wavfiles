@@ -27,4 +27,5 @@ for ifile to number_files
 	Read from file... 'directory$''sound$'
 	
 
-endfor # File load loop 
+endfor 
+# File load loop 
