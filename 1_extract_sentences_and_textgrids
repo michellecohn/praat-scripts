@@ -1,0 +1,83 @@
+##########################################
+#
+# Extract sentences AND textgrid
+#
+#
+# Save as individ. soundfiles & textgrids
+#
+# MC 7/31/20; updated 2/18/21
+#########################################
+
+
+inputdir$ = "/Users/michellecohn/Desktop/data/"
+outputdir$ = "/Users/michellecohn/Desktop/data/output/"
+
+
+######################
+# Loop through TextGrids in subject subfolders
+Create Strings as file list...  list 'inputdir$'/*.wav
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+#for ifile from 1 to 1
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+  Read from file... 'inputdir$'/'curr_file$'
+  # Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+  object_name$ = selected$ ("Sound")
+	wavfile$ = curr_file$ - ".wav" 
+	Read from file... 'inputdir$'/'wavfile$'.TextGrid
+	#writeInfoLine: "'inputdir$'/'curr_file$'"
+
+
+	number_of_intervals = Get number of intervals... sentence_tier
+				
+ 	for i from 1 to number_of_intervals
+		selectObject: "TextGrid 'wavfile$'"
+		# Get time of interval label & interval label 
+    begin_vowel = Get starting point... sentence_tier 'i'
+    end_vowel = Get end point... sentence_tier 'i'
+		word_int = Get interval at time... sentence_tier begin_vowel
+		currSentence$ = Get label of interval... sentence_tier 'word_int'
+		#	writeInfoLine: "Current interval: 'i''currSentence$'"
+
+		if currSentence$ <> """""" 
+		if currSentence$ <> "" 
+
+	
+				######### Extract the vowel as a new sound object #########
+				selectObject: "Sound 'wavfile$'"
+				Extract part... begin_vowel end_vowel Rectangular 1 no
+
+
+	      # Get current text
+	      # set as final word
+
+	      #currSentence$ = " THE WORD IS BODE"
+	      last_space_index = rindex(currSentence$, " ")
+	      last_quote_index = rindex(currSentence$, """")
+
+	      word_start = last_space_index + 1
+	      word_end = length(currSentence$)
+	      #word_end = word_end - 1
+	      word_length = word_end - word_start
+	      word$ = mid$(currSentence$, word_start, word_length)
+
+		    Save as WAV file: "'outputdir$''wavfile$'_'word$'.wav"
+		
+		    ######### Extract textgrid! #########
+		    selectObject: "TextGrid 'wavfile$'"
+		    Extract part... begin_vowel end_vowel "yes"
+		    Save as text file: "'outputdir$''wavfile$'_'word$'.TextGrid"
+
+    endif
+  endif
+endfor
+
+select all 
+minus Strings list
+Remove
+
+endfor
+
+
