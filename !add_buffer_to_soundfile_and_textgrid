@@ -1,0 +1,75 @@
+##########################################
+#
+# Add a buffer (currently 1/2 total duration) to start of soundfile
+# And adjust textgrid
+#
+#
+# Saves as individ. soundfiles & textgrids
+#
+# MC 5/24/2022
+#########################################
+
+
+inputdir$ = "/Users/michellecohn/Desktop/data/"
+outputdir$ = "/Users/michellecohn/Desktop/data/output/"
+
+######################
+Create Strings as file list...  list 'inputdir$'/*.wav
+n_wav = Get number of strings
+
+for ifile from 1 to n_wav
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+  Read from file... 'inputdir$'/'curr_file$'
+  object_name$ = selected$ ("Sound")
+
+
+  # Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+	selectObject: "Sound 'object_name$'"
+	curr_sound_duration = Get duration
+	curr_buffer_duration = curr_sound_duration/2
+
+	wavfile$ = curr_file$ - ".wav" 
+	Read from file... 'inputdir$'/'wavfile$'.TextGrid
+
+	selectObject: "TextGrid 'wavfile$'"
+	tier_1_name$ = Get tier name: 1
+	tier_2_name$ = Get tier name: 2
+	tier_3_name$ = Get tier name: 3
+
+
+	Create Sound from formula: "buffer", 1, 0.0, curr_buffer_duration, 22050, "0" 
+	To TextGrid... "one two three"
+	Set tier name: 1, "'tier_1_name$'"
+	Set tier name: 2, "'tier_1_name$'"
+	Set tier name: 3, "'tier_1_name$'"
+
+	#### COMBINE TEXTGRIDS
+	selectObject: "TextGrid 'wavfile$'"
+	Copy... target_tg
+
+	selectObject: "TextGrid buffer"
+	plusObject: "TextGrid target_tg"
+	Concatenate
+	Rename... curr_combined
+	
+	Save as text file: "'outputdir$''wavfile$'.TextGrid"
+
+
+	selectObject: "Sound 'object_name$'"
+	Copy...
+
+	selectObject: "Sound 'object_name$'"
+	plusObject: "Sound buffer"
+	Concatenate
+	Rename... curr_combined
+
+	Save as WAV file: "'outputdir$''wavfile$'.wav"
+
+
+
+	select all
+	minus Strings list
+	Remove
+
+endfor
