@@ -1,0 +1,634 @@
+########################################################################################
+#
+# Sentence-level measurements
+#
+# (1) Duration
+# (2) Speech rate (avg. number of syllables/sec)
+# (3) F0 (sampled at 10 equidistant intervals)
+# (4) Intensity (avg. over utterance)
+# (5) LTAS
+#
+#
+########################################################################################
+
+
+# (1) Define I/O directories #######
+
+form Give the working directories
+	comment Give the directory for the .wav and .textgrids (include final /)
+  text directory /Users/michellecohn/Desktop/data/
+
+	comment Give the outputdirectory for the acoustic measurements (include final /)
+	text outputdir /Users/michellecohn/data/Measurements/
+
+	comment Give the outputdirectory for LTAS
+	text ltas_outputdir /Users/michellecohn/Desktop/data/LTAS/
+
+	comment Give the string at the end of the TextGrid (if applicable)
+	text textgridstring
+ 
+	comment Give the string at the beginning (if applicable) for speaker ID (used for gender)
+	text speakerid
+
+	comment Give subject group info (Appends to end of FILENAME)
+	text subject_group Group1
+  
+	comment Is this the RA speaker?
+	text ra_speaker yes
+
+	comment Give current gender
+	text gender no
+
+	comment Do you want to log pitch? ("yes" = log pitch; "no" = keep raw Herz)
+   	text log_pitch no
+
+	comment Set number of pitch measurements to make
+   	real numintervals 10
+	
+	# From speech rate script
+   real Silence_threshold_(dB) -25
+   real Minimum_dip_between_peaks_(dB) 2
+   real Minimum_pause_duration_(s) 0.3
+   boolean Keep_Soundfiles_and_Textgrids no
+
+
+endform 
+
+
+if gender$ = "male"
+	f0_minimum = 78
+	f0_maximum = 150
+
+endif
+
+if gender$ = "kid"
+	f0_minimum = 150
+	f0_maximum = 450
+
+endif
+
+if gender$ = "female"
+	f0_minimum = 150
+	f0_maximum = 350
+endif
+
+
+
+
+################ (1) Set parameters ################
+
+#Number of intervals you wish to extract pitch from.
+#numintervals = 10
+
+analysis_points_time_step = 0.01
+
+
+ra_tier = 1
+user_tier = 2
+condition_tier = 3
+error_tier = 4
+word_tier = 5
+phone_tier = 6
+
+
+if ra_speaker$ = "yes"
+	user_tier = 1
+	#subject_group$ = "FemaleRAs"
+
+endif
+
+
+############### Speech rate ###############
+
+# shorten variables
+silencedb = 'silence_threshold'
+mindip = 'minimum_dip_between_peaks'
+showtext = 'keep_Soundfiles_and_Textgrids'
+minpause = 'minimum_pause_duration'
+
+
+
+
+################## INITIALIZE TABLE ############
+Create Table with column names... acoustic_measurements 1 Filename SpeakerName SubjectGroup Curr_Interlocutor IntervalNumber Utterance Error (Real)Time_Start (Real)Time_End  Duration Intensity RMS Mean_f0 Sd_f0 Max_F0
+for i to numintervals
+	Append column... Mean_f0_Interval_'i'
+endfor
+Append column... NVoiced
+Append column... NPause
+#Append column... originaldur
+#Append column... speakingtot
+Append column... SpeechRate
+Append column... ArticulationRate
+#Append column... asd
+Append column... LTAS_Average_1_to_3kHz
+
+
+
+
+################ (3) Loop through files ################
+# (3) Loop through TextGrids in subject subfolders
+Create Strings as file list...  list 'directory$'/'speakerid$'*.TextGrid
+n_wav = Get number of strings
+
+table_row_counter = 0 
+
+
+for ifile from 1 to n_wav
+#for ifile from 1 to 1
+	select Strings list
+	curr_file$ = Get string... 'ifile'
+   	Read from file... 'directory$'/'curr_file$'
+
+	textgridid = selected("TextGrid")
+ 	number_of_intervals = Get number of intervals... user_tier
+
+
+   	# Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+   	object_name$ = selected$ ("TextGrid")
+	wavfile$ = curr_file$ - ".TextGrid" 
+	Read from file... 'directory$'/'wavfile$'.wav
+
+
+############################### Loop through TextGrid ###############################
+	
+	selectObject: "TextGrid 'object_name$'"
+	# Measure number of tiers
+
+	###### GET THE TIER NAME (i.e., speaker NAME)######
+	speaker_tier_name$ = Get tier name... user_tier
+
+	for i from 1 to number_of_intervals
+		selectObject: "TextGrid 'object_name$'"
+			
+
+			######## GET BASIC INFO FROM THE INTERVAL 
+
+			# Get time of interval label & interval label 
+    		start_realtime 			= Get starting point... user_tier 'i'
+            end_realtime			= Get end point... user_tier 'i'
+			utterance_duration = end_realtime - start_realtime
+			start_plus		= start_realtime + 0.001
+
+
+			#interval_label$ = Get label of interval... word_tier 'i'
+			#arpabet_num$ 	= right$(interval_label$, 1)
+
+		#	word_int 		= Get interval at time... word_tier start_plus
+		#	word_label$ 	= Get label of interval... word_tier 'word_int'
+
+			sentence_int 	= Get interval at time... user_tier start_plus
+			sentence_label$ = Get label of interval... user_tier 'sentence_int'
+
+			cond_int 	= Get interval at time... condition_tier start_plus
+			cond_label$ = Get label of interval... condition_tier 'cond_int'
+
+			error_int 		= Get interval at time... error_tier start_plus
+			error_label$ 	= Get label of interval... error_tier 'error_int'
+
+
+	if sentence_label$ <> "" and sentence_label$ <> "sp" and sentence_label$ <> " " and sentence_label$ <> "silent" and sentence_label$ <> "silence"
+
+############################### ############################### ############################### ############################### 
+############################### ############################### ############################### ############################### 
+
+			
+
+			######## EXTRACT SEGMENT
+			selectObject: "Sound 'object_name$'"
+			Extract part... start_realtime end_realtime Rectangular 1 no
+
+			Scale intensity... 70.0
+			segment_extract_name$ = "'object_name$'_segment"
+			Rename... 'segment_extract_name$'	
+			soundid = selected("Sound")
+
+			######## GET BASIC INFO FROM THE SOUNDFILE 
+
+ 			start 		= 0.00
+			end 		= Get end time
+			interval  	= (end-start)/numintervals
+			utterance_duration = end - start		
+	
+			mean_intensity = Get intensity (dB)
+			rms = Get root-mean-square... start end
+
+
+			###### ADD TO OUTPUT TABLE ######
+			table_row_counter = table_row_counter + 1
+			### Add to table
+
+			selectObject: "Table acoustic_measurements"
+			Append row
+			Set string value... table_row_counter Filename 'wavfile$'
+			Set string value... table_row_counter SpeakerName 'speaker_tier_name$'
+			Set string value... table_row_counter SubjectGroup 'subject_group$'
+			Set string value... table_row_counter Curr_Interlocutor 'cond_label$'
+			Set numeric value... table_row_counter IntervalNumber 'i'
+			Set string value... table_row_counter Utterance 'sentence_label$'
+			Set string value... table_row_counter Error 'error_label$'
+			Set numeric value... table_row_counter (Real)Time_Start 'start_realtime'
+			Set numeric value... table_row_counter (Real)Time_End 'end_realtime'
+			Set numeric value... table_row_counter Duration 'utterance_duration'
+			Set numeric value... table_row_counter Intensity 'mean_intensity'
+			Set numeric value... table_row_counter RMS 'rms'
+
+
+
+
+
+					########################### BEGIN PITCH MEASUREMENT #############
+
+					# Don't try to get pitch measurements if it's shorter than 40 ms.... 
+					if utterance_duration > 0.04
+
+
+						######### Calculate mean f0 for each sub-interval#########
+						select 'soundid'
+						noprogress To Pitch... 0 f0_minimum f0_maximum
+						pitchid = selected("Pitch")
+
+
+						#### GET OVERALL MEAN / SD F0 / MAX F0 #########
+						overall_mean_f0 = Get mean... 0.0 0.0 Hertz
+						overall_sd_f0 = Get standard deviation... 0.0 0.0 Hertz
+						max_f0 = Get maximum... 0.0 0.0 Hertz Parabolic
+									
+						#### ADD IN INFO TO TABLE
+						selectObject: "Table acoustic_measurements"
+
+						Set string value... table_row_counter Mean_f0 'overall_mean_f0'
+						Set string value... table_row_counter Sd_f0 'overall_sd_f0'
+						Set string value... table_row_counter Max_F0 'max_f0'
+
+
+						total = 0
+         				number = 0
+
+						intvl_num = 1
+      					position  = start
+
+
+						########### Within each interval, take f0 measurements every 0.01 s interval ###########
+    					while position <= end
+					
+							while position < start + intvl_num * interval
+							select 'pitchid'
+							hertz  = Get value at time... position Hertz Linear
+		
+								average$ = ""
+
+           						if hertz = undefined
+	         					 	# do nothing
+									average$ = ""
+            						else
+                  						total  = total + hertz
+                  						number = number + 1
+            						endif
+								position = position + analysis_points_time_step
+         						endwhile
+
+      		
+							# Calculate mean & median
+							average  = total / number
+
+							if total = 0
+								average$ = ""
+        						else
+								if log_pitch$ == "yes"
+									average = log10(average)
+									average$ = fixed$(average, 3)
+								else 
+									average$ = fixed$(average, 3)
+								endif
+
+							endif
+
+
+
+							if intvl_num <= numintervals
+					
+								selectObject: "Table acoustic_measurements"
+								Set string value... table_row_counter Mean_f0_Interval_'intvl_num' 'average'
+						
+								select 'pitchid'
+
+							endif
+
+         						intvl_num = intvl_num + 1
+
+						endwhile
+
+					# ENDIF shorter than 50 ms
+					#endif
+     
+					########################### END PITCH MEASUREMENT #############
+
+############################# ############################# ############################# 
+############################# SPEECH RATE ############################# 
+############################# ############################# ############################# 
+
+# Don't get speech rate if < 50ms long 
+
+if utterance_duration > 0.50
+
+   select 'soundid'
+   originaldur = Get total duration
+   # allow non-zero starting time
+   bt = Get starting time
+
+   # Use intensity to get threshold
+   noprogress nowarn To Intensity... 70 0 yes
+   intid = selected("Intensity")
+   start = nowarn Get time from frame number... 1
+   nframes = nowarn Get number of frames
+   end = nowarn Get time from frame number... 'nframes'
+
+   # estimate noise floor
+   minint = nowarn Get minimum... 0 0 Parabolic
+   # estimate noise max
+   maxint = nowarn Get maximum... 0 0 Parabolic
+   #get .99 quantile to get maximum (without influence of non-speech sound bursts)
+   max99int = nowarn Get quantile... 0 0 0.99
+
+   # estimate Intensity threshold
+   threshold = max99int + silencedb
+   threshold2 = maxint - max99int
+   threshold3 = silencedb - threshold2
+   if threshold < minint
+       threshold = minint
+   endif
+
+  # get pauses (silences) and speakingtime
+   noprogress nowarn To TextGrid (silences)... threshold3 minpause 0.1 silent sounding
+	n_intervals = Get number of intervals... 1
+
+	if n_intervals > 1
+		curr_label$ = Get label of interval... 1 1
+
+		if curr_label$ <> "silent" 
+
+   		textgridid = selected("TextGrid")
+   		silencetierid = Extract tier... 1
+	
+
+   	silencetableid = noprogress Down to TableOfReal... sounding
+
+   nsounding = Get number of rows
+   npauses = 'nsounding'
+   speakingtot = 0
+   for ipause from 1 to npauses
+      beginsound = Get value... 'ipause' 1
+      endsound = Get value... 'ipause' 2
+      speakingdur = 'endsound' - 'beginsound'
+      speakingtot = 'speakingdur' + 'speakingtot'
+   endfor
+
+   select 'intid'
+
+
+   Down to Matrix
+   matid = selected("Matrix")
+   # Convert intensity to sound
+   noprogress To Sound (slice)... 1
+   sndintid = selected("Sound")
+
+   # use total duration, not end time, to find out duration of intdur
+   # in order to allow nonzero starting times.
+   intdur = Get total duration
+   intmax = Get maximum... 0 0 Parabolic
+
+   # estimate peak positions (all peaks)
+   noprogress To PointProcess (extrema)... Left yes no Sinc70
+   ppid = selected("PointProcess")
+
+   numpeaks = Get number of points
+
+   # fill array with time points
+   for ipeak from 1 to numpeaks
+       t'ipeak' = Get time from index... 'ipeak'
+   endfor
+
+
+   # fill array with intensity values
+   select 'sndintid'
+   peakcount = 0
+   for ipeak from 1 to numpeaks
+       value = Get value at time... t'ipeak' Cubic
+       if value > threshold
+             peakcount += 1
+             int'peakcount' = value
+             timepeaks'peakcount' = t'ipeak'
+       endif
+   endfor
+
+
+   # fill array with valid peaks: only intensity values if preceding
+   # dip in intensity is greater than mindip
+   select 'intid'
+   validpeakcount = 0
+   currenttime = timepeaks1
+   currentint = int1
+
+   for p to peakcount-1
+      following = p + 1
+      followingtime = timepeaks'following'
+      dip = Get minimum... 'currenttime' 'followingtime' None
+      diffint = abs(currentint - dip)
+
+      if diffint > mindip
+         validpeakcount += 1
+         validtime'validpeakcount' = timepeaks'p'
+      endif
+         currenttime = timepeaks'following'
+         currentint = Get value at time... timepeaks'following' Cubic
+   endfor
+
+
+   # Look for only voiced parts
+   #select 'soundid'
+   #To Pitch (ac)... 0.02 30 4 no 0.03 0.25 0.01 0.35 0.25 450
+   # keep track of id of Pitch
+   #pitchid = selected("Pitch")
+	select 'pitchid'
+
+   voicedcount = 0
+   for ivalidpeak from 1 to validpeakcount
+      querytime = validtime'ivalidpeak'
+
+      select 'textgridid'
+      whichinterval = Get interval at time... 1 'querytime'
+      whichlabel$ = Get label of interval... 1 'whichinterval'
+
+      select 'pitchid'
+      value = Get value at time... 'querytime' Hertz Linear
+
+      if value <> undefined
+         if whichlabel$ = "sounding"
+             voicedcount = voicedcount + 1
+             voicedpeak'voicedcount' = validtime'ivalidpeak'
+         endif
+      endif
+   endfor
+
+  
+   # calculate time correction due to shift in time for Sound object versus
+   # intensity object
+   timecorrection = originaldur/intdur
+
+   # Insert voiced peaks in TextGrid
+   if showtext > 0
+      select 'textgridid'
+      Insert point tier... 1 syllables
+     
+      for ivoiced from 1 to voicedcount
+          position = voicedpeak'ivoiced' * timecorrection
+          Insert point... 1 position 'ivoiced'
+      endfor
+   endif
+
+   # clean up before next sound file is opened
+    select 'intid'
+    plus 'matid'
+    plus 'sndintid'
+    plus 'ppid'
+    plus 'pitchid'
+    plus 'silencetierid'
+    plus 'silencetableid'
+
+    Remove
+ #   if showtext < 1
+ #      select 'soundid'
+ #      plus 'textgridid'
+ #      Remove
+ #   endif
+
+
+  # summarize results in Info window
+  speakingrate = 'voicedcount'/'originaldur'
+  articulationrate = 'voicedcount'/'speakingtot'
+  npause = 'npauses'-1
+  asd = 'speakingtot'/'voicedcount'
+
+
+	#### ADD TO TABLE 
+	selectObject: "Table acoustic_measurements"
+	Set numeric value... table_row_counter NVoiced voicedcount
+	Set numeric value... table_row_counter NPause npause
+	Set numeric value... table_row_counter SpeechRate speakingrate
+	Set numeric value... table_row_counter ArticulationRate articulationrate
+
+	#fileappend "'outputdir$'f0_contour_measurements_logfile_study_'subject_group$'.txt" 'tab$''voicedcount''tab$''npause''tab$''originaldur:2''tab$''speakingtot:2''tab$''speakingrate:2''tab$''articulationrate:2''tab$''asd:3'
+
+
+# If there's only 1 silent / sounding interval... and it's not 'sounding'
+endif
+endif
+
+
+# no speech rate if less than 0.1 second
+endif 
+
+
+
+
+
+############################# ############################# ############################# 
+############################# END SPEECH RATE ############################# 
+############################# ############################# ############################# 
+
+############################# ############################# ############################# 
+############################# START LTAS ############################# 
+############################# ############################# ############################# 
+
+
+#combined_total = 0
+#combined_average = 0 
+
+if utterance_duration > 0.50
+
+   select 'soundid'
+	# only if there were pitch values measured
+	if total <> 0
+
+	select 'soundid'
+
+	max_frequency = 5000
+	bandwidth = 100
+
+	noprogress To Ltas (pitch-corrected): f0_minimum, f0_maximum, max_frequency, bandwidth, 0.0001, 0.02, 1.3
+
+	# Save LTAS
+	Save as text file: "'ltas_outputdir$''object_name$'_interval'i'.Ltas"
+
+	# Total mean energy in 1–3 kHz range 
+	Get value in bin... 1000
+
+	# Bin width = 100 Hz; 
+	# Number of bins = 50
+
+	# Get means from bins # 10 - 30
+
+	for ibin from 10 to 30
+
+		new_value = Get value in bin... ibin
+	
+		# Curr avg
+		if ibin == 10
+			combined_total = new_value
+		else 
+			combined_total = combined_total + new_value
+		endif
+
+	endfor
+
+		combined_average = combined_total / 20
+
+
+	endif
+endif
+
+
+
+############################# ############################# ############################# 
+############################# END LTAS ############################# 
+############################# ############################# ############################# 
+
+
+	selectObject: "Table acoustic_measurements"
+	Set string value... table_row_counter LTAS_Average_1_to_3kHz 'combined_average'
+
+
+
+	#if a target word
+endif
+
+
+
+############################### ############################### ############################### ############################### 
+############################### ############################### ############################### ############################### 
+
+	
+    	endif	
+		#	endif			
+
+
+endfor
+
+
+select all 
+minus Strings list
+minus Table acoustic_measurements
+Remove
+
+
+#selectObject: "Table acoustic_measurements"
+#Save as comma-separated file: "'outputdir$'acoustic_measurements_801.csv"
+
+
+endfor
+
+selectObject: "Table acoustic_measurements"
+Save as comma-separated file: "'outputdir$'acoustic_measurements'subject_group$'.csv"
+
+
