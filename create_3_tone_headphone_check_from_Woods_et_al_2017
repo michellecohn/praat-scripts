@@ -1,0 +1,91 @@
+# 
+# Create 3 tones (for headphones check
+#
+# MC 7/18/22
+# 
+#
+
+tone_duration = 1
+tone_Hz = 200
+silence_duration = 0.500 
+fs = 44100
+pascal = 0.06324555320337
+
+outputdir$ = "/Users/michellecohn/Desktop/data/"
+
+
+# Generate 1st pure tone
+Create Sound as pure tone: "tone", 1, 0.0, tone_duration, fs, tone_Hz, pascal, 0.01, 0.01
+Rename... sound_1
+Convert to stereo
+
+Create Sound from formula: "silence_1", 1, 0.0, silence_duration, fs, "0"
+Convert to stereo
+
+selectObject: "Sound sound_1"
+Copy... sound_2
+Multiply... -1
+Convert to stereo
+
+Create Sound from formula: "silence_2", 1, 0.0, silence_duration, fs, "0"
+Convert to stereo
+
+# Combine sound_1 and 2
+selectObject: "Sound sound_1"
+plusObject: "Sound sound_2"
+Combine to stereo
+Rename... sound_1_2_combined
+
+# Third is quietest
+selectObject: "Sound sound_1_stereo"
+plusObject: "Sound silence_1_stereo"
+plusObject: "Sound sound_2_stereo"
+plusObject: "Sound silence_2_stereo"
+plusObject: "Sound sound_1_2_combined"
+Concatenate
+Save as WAV file: "'outputdir$'/third_quietest.wav"
+
+# First is quietest
+selectObject: "Sound silence_1_stereo"
+Copy... silence_1_stereo2
+selectObject: "Sound sound_1_stereo"
+Copy... sound_1_stereo2
+selectObject: "Sound silence_2_stereo"
+Copy... silence_2_stereo2
+selectObject: "Sound sound_2_stereo"
+Copy... sound_2_stereo2
+
+selectObject: "Sound sound_1_2_combined"
+plusObject: "Sound silence_1_stereo2"
+plusObject: "Sound sound_2_stereo2"
+plusObject: "Sound silence_2_stereo2"
+plusObject: "Sound sound_1_stereo2"
+Concatenate
+Save as WAV file: "'outputdir$'/first_quietest.wav"
+
+
+# Second is quietest
+
+selectObject: "Sound sound_2_stereo"
+Copy... sound_2_stereo3
+selectObject: "Sound silence_1_stereo"
+Copy... silence_1_stereo3
+selectObject: "Sound sound_1_2_combined"
+Copy... sound_1_2_combined3
+selectObject: "Sound silence_2_stereo"
+Copy... silence_2_stereo3
+selectObject: "Sound sound_1_stereo"
+Copy... sound_1_stereo3
+
+
+
+selectObject: "Sound sound_2_stereo3"
+plusObject: "Sound silence_1_stereo3"
+plusObject: "Sound sound_1_2_combined3"
+plusObject: "Sound silence_2_stereo3"
+plusObject: "Sound sound_1_stereo3"
+
+Concatenate
+Save as WAV file: "'outputdir$'/second_quietest.wav"
+
+
