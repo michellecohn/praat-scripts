@@ -2,7 +2,7 @@
 #
 # Get full sentence from word interval labels
 #
-# NOTE: loops through a folder directory & then file directory
+# NOTE: loops through subdirectories in a given directory (assumes subfolders)
 # 
 #
 # MC 4/28/20; updated 1/25/2022
