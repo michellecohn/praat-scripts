@@ -5,8 +5,7 @@
 # Loops over files in each subdirectory; 
 #
 # Specifics:
-# 	* Uses "sp" labels to partion sentences (from FAVE)
-# 	* then creates a new sentence interval
+# 	* Assumes sentences are already labeled in a prior step!
 # 	* sentence label is created by concatenating all the words within the timeframe for the sentence label
 #
 # Requirements: 
