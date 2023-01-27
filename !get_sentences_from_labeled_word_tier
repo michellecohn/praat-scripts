@@ -2,10 +2,27 @@
 #
 # Get full sentence from word interval labels
 #
-# NOTE: loops through subdirectories in a given directory (assumes subfolders)
-# 
+# Loops over files in each subdirectory; 
 #
-# MC 4/28/20; updated 1/25/2022
+# Specifics:
+# 	* Uses "sp" labels to partion sentences (from FAVE)
+# 	* then creates a new sentence interval
+# 	* sentence label is created by concatenating all the words within the timeframe for the sentence label
+#
+# Requirements: 
+# 	* You have a directory for your project AND subdirectories 
+# 	* Will loop over subdirectories (aka subfolders)
+# 	* Assumes there is silence between utterances... will not work as well for connected speech
+# 
+# Things to check as before you run the script:
+# 	* Make sure none of your folder names have spaces (Praat has a hard time with this!)
+#
+# Things to check as you run the script: 
+#	* Make sure the Strings_list isn't empty (that means you have a directory/path issue and Praat isn't seeing your files. This is one of the most common sources of errors in Praat, and coding in general)
+# 	* Make sure the Folder_list also isn't empty
+#
+#
+# MC 4/28/20; updated 1/27/2023
 # 
 ######################################################################################################
 
