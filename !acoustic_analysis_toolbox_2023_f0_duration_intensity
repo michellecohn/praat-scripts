@@ -1,0 +1,249 @@
+########################################################################################
+#
+# Prosodic analysis toolkit!  
+#
+# Loops over intervals on a defined tier; extracts them and measures prosodic features 
+# Outputs: .csv file 
+# 
+#  INTERVAL MEASUREMENTS: 
+#
+# (1) Duration
+# (2) F0 (sampled at 10 equidistant intervals)
+# (3) Intensity (avg. over utterance)
+#  REQUIREMENTS:
+#  (1) .wav file 
+#  (2) .TextGrid file (same name as .wav file)
+#  (3) .TextGrid has labeled intervals on a target tier*
+#       
+#           * Can specify if this target tier is always the same (e.g., target_tier = 2), 
+#             or if it needs to be dynamically created (currently; can specify it as the *last* tier) 
+# #
+#
+# MC 3/15/2023 
+########################################################################################
+# (1) Define I/O directories #######
+form Give the working directories
+    comment Give the directory for the .wav and .textgrids (include final /)
+    text directory /Users/michellecohn/Desktop/data/
+    comment Give the directory for the .textgrids (include final /)
+    text tgdirectory /Users/michellecohn/Desktop/data/
+    comment Give the outputdirectory for the measurement .txt file (include final /)
+    text outputdir /Users/michellecohn/Desktop/Acoustic_Measurements/
+    comment Give the string at the end of the TextGrid (if applicable)
+    text textgridstring
+ 
+    comment Give the string at the beginning (if applicable) for speaker ID (used for gender)
+    text speakerid
+    comment Give subject group info (Appends to end of FILENAME)
+    text subject_group NSF_Coartic
+  
+    comment Do you want to constrain f0 values based on speakers' gender?
+    optionmenu constraingender 2
+       option yes
+       option no
+    comment Indicate if "yes" (constrain based on gender), give current speaker gender
+    text gender male
+    #comment Do you want to log pitch? ("yes" = log pitch; "no" = keep raw Herz)
+    #text log_pitch no
+    comment Set number of (equadistant) pitch measurements to make
+    real numintervals 10
+    comment If the target tier is always the same, what tier number is it?
+    real target_tier 5
+    comment If the target tier is dyanmic, which of the following is it?
+    optionmenu target_tier_dynamic 2
+       option target_tier_is_last
+       option target_tier_is_second_to_last
+       option target_tier_is_static
+    comment Specify which other tiers you want to get labels from
+    real otherinfo_tier_first 1
+    real otherinfo_tier_second 3
+    real otherinfo_tier_third 4
+endform 
+if constraingender$ = "yes" 
+    if gender$ = "male"
+        f0_minimum = 78
+        f0_maximum = 150
+    endif
+    if gender$ = "kid"
+        f0_minimum = 150
+        f0_maximum = 450
+    endif
+    if gender$ = "female"
+        f0_minimum = 150
+        f0_maximum = 350
+    endif
+else 
+    f0_minimum = 78
+    f0_maximum = 350
+endif
+################ (1) Set parameters ################
+analysis_points_time_step = 0.01
+############### Speech rate ###############
+    # From speech rate script
+   #    real Silence_threshold_(dB) -25
+   #    real Minimum_dip_between_peaks_(dB) 2
+   #    real Minimum_pause_duration_(s) 0.3
+   #    boolean Keep_Soundfiles_and_Textgrids yes
+# shorten variables
+silencedb = -25
+mindip = 2
+showtext = 1
+minpause = 0.3
+################## INITIALIZE TABLE ############
+Create Table with column names... acoustic_measurements 1 Filename IntervalNumber Utterance Notes1 Notes2 Notes3 (Real)Time_Start (Real)Time_End  Duration Intensity RMS Mean_f0 Sd_f0 Max_F0
+for i to numintervals
+    Append column... Mean_f0_Interval_'i'
+endfor
+################ (3) Loop through files ################
+# (3) Loop through TextGrids in subject subfolders
+Create Strings as file list...  list 'directory$'/'speakerid$'*.wav
+n_wav = Get number of strings
+table_row_counter = 0 
+for ifile from 1 to n_wav
+#for ifile from 1 to 2
+    select Strings list
+    curr_file$ = Get string... 'ifile'
+    Read from file... 'directory$'/'curr_file$'
+    soundid = selected("Sound")
+    # Here we make a variable called "object_name$" that will be equal to the filename minus the ".wav" extension
+    object_name$ = selected$ ("Sound")
+    wavfile$ = curr_file$ - ".wav" 
+    Read from file... 'tgdirectory$'/'wavfile$''textgridstring$'.TextGrid
+    textgridid = selected("TextGrid")
+    number_of_tiers = Get number of tiers
+    if target_tier_dynamic$ = "target_tier_is_last"
+        target_tier_number = number_of_tiers
+    else
+        target_tier_number = target_tier
+    endif 
+    if target_tier_dynamic$ = "target_tier_is_second_to_last"
+        target_tier_number = number_of_tiers -1 
+    else
+        target_tier_number = target_tier
+    endif 
+############################### Loop through TextGrid ###############################
+    
+    # Measure number of tiers
+    number_of_intervals = Get number of intervals... target_tier
+    for i from 1 to number_of_intervals
+        selectObject: "TextGrid 'object_name$'"
+    
+            ######## GET BASIC INFO FROM THE INTERVAL 
+            # Get time of interval label & interval label 
+            start           = Get starting point... target_tier_number 'i'
+            end             = Get end point... target_tier_number 'i'
+            interval    = (end-start)/numintervals
+            utterance_duration = end - start
+            start_plus      = start + 0.001
+            sentence_int    = Get interval at time... target_tier_number start_plus
+            sentence_label$ = Get label of interval... target_tier_number 'sentence_int'
+            start_realtime = start
+            end_realtime = end
+            otherinfo_int   = Get interval at time... otherinfo_tier_first start_plus
+            otherinfo_label$ = Get label of interval... otherinfo_tier_first 'otherinfo_int'
+            otherinfo_int   = Get interval at time... otherinfo_tier_second start_plus
+            otherinfo_label2$ = Get label of interval... otherinfo_tier_second 'otherinfo_int'
+            otherinfo_int   = Get interval at time... otherinfo_tier_third start_plus
+            otherinfo_label3$ = Get label of interval... otherinfo_tier_third 'otherinfo_int'
+            if sentence_label$ <> ""
+                selectObject: "Sound 'object_name$'"
+    
+                ########################### EXTRACT SENTENCE #############
+                # Don't try to get pitch, rate, and LTAS measurements if it's shorter than 40 ms.... 
+                if utterance_duration > 0.040
+                table_row_counter = table_row_counter + 1
+                    ######### Extract the vowel as a new sound object #########
+                    selectObject: "Sound 'object_name$'"
+                    Extract part... start end Rectangular 1 no
+                    segment_extract_name$ = "'object_name$'_'word_label$'_segment"
+                    Rename... 'segment_extract_name$'
+                    soundid = selected("Sound")
+                    start           = 0.0
+                    end             = Get end time
+                    
+                    mean_intensity = Get intensity (dB)
+                    rms = Get root-mean-square... start end
+            
+                    ######### Calculate mean f0 for each sub-interval#########
+                    select 'soundid'
+                    noprogress To Pitch... 0 f0_minimum f0_maximum
+                    pitchid = selected("Pitch")
+                    #### GET OVERALL MEAN / SD F0 / MAX F0 #########
+                    overall_mean_f0 = Get mean... 0.0 0.0 Hertz
+                    overall_sd_f0 = Get standard deviation... 0.0 0.0 Hertz
+                    max_f0 = Get maximum... 0.0 0.0 Hertz Parabolic
+                                
+                ###########################################################################################
+                        total = 0
+                        number = 0
+                        intvl_num = 1
+                        position  = start
+                        ########### Within each interval, take f0 measurements every 0.01 s interval ###########
+                        while position <= end
+                    
+                            while position < start + intvl_num * interval
+                            select 'pitchid'
+                            hertz  = Get value at time... position Hertz Linear
+        
+                                average$ = ""
+                                if hertz = undefined
+                                    # do nothing
+                                    average$ = ""
+                                    else
+                                        total  = total + hertz
+                                        number = number + 1
+                                endif
+                                position = position + analysis_points_time_step
+                                endwhile
+            
+                            # Calculate mean & median
+                            average  = total / number
+                            if total = 0
+                                average$ = ""
+                                else
+                                    average$ = fixed$(average, 3)
+                            endif
+                            if intvl_num <= numintervals
+                    
+                                selectObject: "Table acoustic_measurements"
+                                Set string value... table_row_counter Mean_f0_Interval_'intvl_num' 'average'
+                                select 'pitchid'
+                            endif
+                                intvl_num = intvl_num + 1
+                        endwhile
+                ###### ADD TO OUTPUT TABLE ###############################################################
+                ### Add to table
+                selectObject: "Table acoustic_measurements"
+                Append row
+                Set string value... table_row_counter Filename 'wavfile$'
+                Set numeric value... table_row_counter IntervalNumber 'i'
+                Set string value... table_row_counter Utterance 'sentence_label$'
+                Set string value... table_row_counter Notes1 'otherinfo_label$'
+                Set string value... table_row_counter Notes2 'otherinfo_label2$'
+                Set string value... table_row_counter Notes3 'otherinfo_label3$'
+                Set numeric value... table_row_counter (Real)Time_Start 'start_realtime'
+                Set numeric value... table_row_counter (Real)Time_End 'end_realtime'
+                Set numeric value... table_row_counter Duration 'utterance_duration'
+                Set numeric value... table_row_counter Intensity 'mean_intensity'
+                Set numeric value... table_row_counter RMS 'rms'
+                    #### ADD IN INFO TO TABLE
+                    #selectObject: "Table acoustic_measurements"
+                    Set string value... table_row_counter Mean_f0 'overall_mean_f0'
+                    Set string value... table_row_counter Sd_f0 'overall_sd_f0'
+                    Set string value... table_row_counter Max_F0 'max_f0'
+     
+                    ########################### END PITCH MEASUREMENT #############
+        # If >= 0.0400ms
+        endif   
+    # If not empty interval
+    endif
+#Interval loop                  
+endfor
+select all 
+minus Strings list
+minus Table acoustic_measurements
+Remove
+# Fileloop
+endfor
+selectObject: "Table acoustic_measurements"
+Save as comma-separated file: "'outputdir$'acoustic_measurements'subject_group$'.csv"
