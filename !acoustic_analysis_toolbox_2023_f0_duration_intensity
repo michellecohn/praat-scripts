@@ -29,7 +29,7 @@
 # (1) Define I/O directories #######
 
 form Give the working directories
-	comment Give the directory for the .wav and .textgrids (include final /)
+	comment Give the directory for the .wav files (include final /)
 	text directory /Users/michellecohn/Desktop/RESEARCH_PROJECT_FOLDERS/2022_NSF_NasalCoartic/SentenceAnnotated_Wav_and_TextGrid_CombinedMFA_SentencesMarked/
 
 	comment Give the directory for the .textgrids (include final /)
@@ -76,7 +76,7 @@ form Give the working directories
 	real otherinfo_tier_third 4
 
 
-endform 
+endform
 
 if constraingender$ = "yes" 
     if gender$ = "male"
@@ -158,12 +158,31 @@ for ifile from 1 to n_wav
             sentence_label$ = Get label of interval... target_tier_number 'sentence_int'
             start_realtime = start
             end_realtime = end
-            otherinfo_int   = Get interval at time... otherinfo_tier_first start_plus
-            otherinfo_label$ = Get label of interval... otherinfo_tier_first 'otherinfo_int'
-            otherinfo_int   = Get interval at time... otherinfo_tier_second start_plus
-            otherinfo_label2$ = Get label of interval... otherinfo_tier_second 'otherinfo_int'
-            otherinfo_int   = Get interval at time... otherinfo_tier_third start_plus
-            otherinfo_label3$ = Get label of interval... otherinfo_tier_third 'otherinfo_int'
+
+			# Skip if no other annotation tiers were indicated or if the interval is not >=1
+
+			if otherinfo_tier_first <> undefined
+				otherinfo_int 	= Get interval at time... otherinfo_tier_first start_plus
+				if otherinfo_int >= 1
+					otherinfo_label$ = Get label of interval... otherinfo_tier_first 'otherinfo_int'
+				endif
+			endif
+
+			if otherinfo_tier_second <> undefined
+				otherinfo_int2 	= Get interval at time... otherinfo_tier_second start_plus
+				if otherinfo_int2 >= 1
+					otherinfo_label2$ = Get label of interval... otherinfo_tier_second 'otherinfo_int2'
+				endif
+			endif 
+
+			if otherinfo_tier_third <> undefined
+				otherinfo_int3 	= Get interval at time... otherinfo_tier_third start_plus
+				if otherinfo_int3 >= 1
+					otherinfo_label3$ = Get label of interval... otherinfo_tier_third 'otherinfo_int3'
+				endif
+			endif
+
+
             if sentence_label$ <> ""
                 selectObject: "Sound 'object_name$'"
     
