@@ -2,7 +2,8 @@
 #
 # Prosodic analysis toolkit!  
 #
-# Loops over intervals on a defined tier; extracts them and measures prosodic features 
+# Loops over intervals on target tier; extracts them and measures prosodic features 
+# Can also add in labels from other tiers (e.g., sentence tier, word tier in 'Notes')
 # Outputs: .csv file 
 # 
 #  INTERVAL MEASUREMENTS: 
@@ -10,6 +11,8 @@
 # (1) Duration
 # (2) F0 (sampled at 10 equidistant intervals)
 # (3) Intensity (avg. over utterance)
+#
+#
 #  REQUIREMENTS:
 #  (1) .wav file 
 #  (2) .TextGrid file (same name as .wav file)
@@ -17,7 +20,8 @@
 #       
 #           * Can specify if this target tier is always the same (e.g., target_tier = 2), 
 #             or if it needs to be dynamically created (currently; can specify it as the *last* tier) 
-# #
+# 
+# 
 #
 # MC 3/15/2023 
 ########################################################################################
