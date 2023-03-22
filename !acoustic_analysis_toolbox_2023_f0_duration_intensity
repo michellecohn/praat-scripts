@@ -22,43 +22,58 @@
 # MC 3/15/2023 
 ########################################################################################
 # (1) Define I/O directories #######
+# (1) Define I/O directories #######
+
 form Give the working directories
-    comment Give the directory for the .wav and .textgrids (include final /)
-    text directory /Users/michellecohn/Desktop/data/
-    comment Give the directory for the .textgrids (include final /)
-    text tgdirectory /Users/michellecohn/Desktop/data/
-    comment Give the outputdirectory for the measurement .txt file (include final /)
-    text outputdir /Users/michellecohn/Desktop/Acoustic_Measurements/
-    comment Give the string at the end of the TextGrid (if applicable)
-    text textgridstring
+	comment Give the directory for the .wav and .textgrids (include final /)
+	text directory /Users/michellecohn/Desktop/RESEARCH_PROJECT_FOLDERS/2022_NSF_NasalCoartic/SentenceAnnotated_Wav_and_TextGrid_CombinedMFA_SentencesMarked/
+
+	comment Give the directory for the .textgrids (include final /)
+	text tgdirectory /Users/michellecohn/Desktop/RESEARCH_PROJECT_FOLDERS/2022_NSF_NasalCoartic/SentenceAnnotated_Wav_and_TextGrid_CombinedMFA_SentencesMarked_Vowelerized/
+
+	comment Give the outputdirectory for the measurement .txt file (include final /)
+	text outputdir /Users/michellecohn/Desktop/RESEARCH_PROJECT_FOLDERS/2022_NSF_NasalCoartic/2023_Acoustic_Measurements/
+
+	comment Give the string at the end of the TextGrid (if applicable)
+	text textgridstring
  
-    comment Give the string at the beginning (if applicable) for speaker ID (used for gender)
-    text speakerid
-    comment Give subject group info (Appends to end of FILENAME)
-    text subject_group NSF_Coartic
+	comment Give the string at the beginning (if applicable) for speaker ID (used for gender)
+	text speakerid
+
+	comment Give subject group info (Appends to end of FILENAME)
+	text subject_group NSF_Coartic
   
-    comment Do you want to constrain f0 values based on speakers' gender?
-    optionmenu constraingender 2
+	comment Do you want to constrain f0 values based on speakers' gender?
+	optionmenu constraingender 2
        option yes
        option no
-    comment Indicate if "yes" (constrain based on gender), give current speaker gender
-    text gender male
-    #comment Do you want to log pitch? ("yes" = log pitch; "no" = keep raw Herz)
-    #text log_pitch no
-    comment Set number of (equadistant) pitch measurements to make
-    real numintervals 10
-    comment If the target tier is always the same, what tier number is it?
-    real target_tier 5
-    comment If the target tier is dyanmic, which of the following is it?
-    optionmenu target_tier_dynamic 2
+
+	comment Indicate if "yes" (constrain based on gender), give current speaker gender
+	text gender male
+
+	#comment Do you want to log pitch? ("yes" = log pitch; "no" = keep raw Herz)
+   	#text log_pitch no
+
+	comment Set number of (equadistant) pitch measurements to make
+   	real numintervals 10
+
+	comment If the target tier is always the same, what tier number is it?
+   	real target_tier 5
+
+	comment If the target tier is dyanmic, which of the following is it?
+	optionmenu target_tier_dynamic 2
        option target_tier_is_last
        option target_tier_is_second_to_last
        option target_tier_is_static
-    comment Specify which other tiers you want to get labels from
-    real otherinfo_tier_first 1
-    real otherinfo_tier_second 3
-    real otherinfo_tier_third 4
+
+	comment Specify which other tiers you want to get labels from
+   	real otherinfo_tier_first 1
+	real otherinfo_tier_second 3
+	real otherinfo_tier_third 4
+
+
 endform 
+
 if constraingender$ = "yes" 
     if gender$ = "male"
         f0_minimum = 78
